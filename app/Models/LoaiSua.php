@@ -1,4 +1,4 @@
-<?php
+<!-- <?php
 
 namespace App\Models;
 
@@ -28,4 +28,4 @@ class LoaiSua
         return $data;
     }
 }
-
+ -->
