@@ -12,33 +12,43 @@ class QuizzController extends Controller
 {
     public function store(Request $request)
     {
+        // Tạo quiz
         $quizz = Quizz::create([
             'lesson_id' => $request->lesson_id
         ]);
 
-        $quizzId = $quizz->quiz_id;
+        $createdQuestions = [];
 
-        $question = Question::create([
-            'quiz_id' => $quizzId,
-            'title' => $request->title,
-            'content' => $request->content,
-            'true_answer' => $request->true_answer,
-            'order_index' => $request->order_index
-        ]);
+        // Tạo câu hỏi
+        foreach ($request->questions as $q) {
+            $question = Question::create([
+                'quiz_id' => $quizz->quiz_id,
+                'title' => $q['title'],
+                'content' => $q['content'] ?? null,
+                'true_answer' => $q['true_answer'],
+                'order_index' => $q['order_index']
+            ]);
 
-        $questionId = $question->question_id;
+            $createdAnswers = [];
 
-        $answer = Answer::create([
-            'question_id' => $questionId,
-            'content' => $request->answer_content
-        ]);
+            // Tạo câu trả lời
+            foreach ($q['answers'] as $a) {
+                $answer = Answer::create([
+                    'question_id' => $question->question_id,
+                    'content' => $a['content']
+                ]);
+                $createdAnswers[] = $answer;
+            }
+
+            $question->answers = $createdAnswers;
+            $createdQuestions[] = $question;
+        }
 
         return response()->json([
             'message' => 'Tạo quizz, câu hỏi và câu trả lời thành công',
             'data' => [
                 'quizz' => $quizz,
-                'question' => $question,
-                'answer' => $answer
+                'questions' => $createdQuestions
             ]
         ]);
     }
