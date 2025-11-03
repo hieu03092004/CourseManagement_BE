@@ -1,9 +1,9 @@
-<!-- <?php
+<?php
 
 namespace App\Models;
 
-use App\Helpers\DatabaseHelper;
 use App\Database\MySQLConnection;
+
 class LoaiSua
 {
     /**
@@ -28,4 +28,3 @@ class LoaiSua
         return $data;
     }
 }
- -->
