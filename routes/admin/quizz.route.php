@@ -8,4 +8,4 @@ Route::post('{quizId}/questions', [QuizzController::class, 'addQuestion']);
 Route::post('{questionId}/answers', [QuizzController::class, 'addAnswer']);
 Route::delete('delquestions/{questionId}', [QuizzController::class, 'deleteQuestion']);
 Route::delete('delanswers/{answerId}', [QuizzController::class, 'deleteAnswer']);
-Route::put('{questionId}/true-answer', [QuizzController::class, 'updateTrueAnswer']);
+Route::put('{questionId}/putquestion', [QuizzController::class, 'updateTrueAnswer']);

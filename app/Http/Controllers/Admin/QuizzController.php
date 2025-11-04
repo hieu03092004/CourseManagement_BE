@@ -141,12 +141,16 @@ class QuizzController extends Controller
         $question = Question::findOrFail($questionId);
 
         $answerId = $request->true_answer;
+        $newcontent = $request->new_content;
+        $index = $request->new_index;
 
+        $question->content = $newcontent;
         $question->true_answer = $answerId;
+        $question->order_index = $index;
         $question->save();
 
         return response()->json([
-            'message' => 'Cập nhật đáp án đúng thành công',
+            'message' => 'Cập nhật câu hỏi thành công',
             'question' => $question
         ]);
     }
