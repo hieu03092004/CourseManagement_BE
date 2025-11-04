@@ -154,4 +154,21 @@ class QuizzController extends Controller
             'question' => $question
         ]);
     }
+
+    public function deleteQuiz($quizzId)
+    {
+        $quizz = Quizz::findOrFail($quizzId);
+
+        foreach ($quizz->questions as $question) {
+            $question->answers()->delete();
+            $question->delete();
+        }
+
+        $quizz->delete();
+
+        return response()->json([
+            'message' => 'Xóa quizz thành công',
+            'quizz' => $quizzId
+        ]);
+    }
 }

@@ -9,8 +9,14 @@ class Quizz extends Model
     public $timestamps = false;
 
     protected $table = 'quizz';
+    protected $primaryKey = 'quiz_id';
 
     protected $fillable = [
         'lesson_id',
     ];
+
+    public function questions()
+    {
+        return $this->hasMany(Question::class, 'quiz_id', 'quiz_id');
+    }
 }
