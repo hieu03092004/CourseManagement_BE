@@ -86,7 +86,7 @@ class QuizzController extends Controller
 
         // Tạo mặc định 1 đáp án nếu không có
         $answer = Answer::create([
-            'question_id' => $question->question_id,
+            'question_id' => $question->id,
             'content' => 'Đáp án 1'
         ]);
 

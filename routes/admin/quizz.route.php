@@ -5,7 +5,7 @@ use App\Http\Controllers\Admin\QuizzController;
 
 Route::post('', [QuizzController::class, 'store']);
 Route::post('{quizId}/questions', [QuizzController::class, 'addQuestion']);
-Route::post('questions/{questionId}/answers', [QuizzController::class, 'addAnswer']);
-Route::delete('questions/{questionId}', [QuizzController::class, 'deleteQuestion']);
-Route::delete('answers/{answerId}', [QuizzController::class, 'deleteAnswer']);
-Route::put('questions/{questionId}/true-answer', [QuizzController::class, 'updateTrueAnswer']);
+Route::post('{questionId}/answers', [QuizzController::class, 'addAnswer']);
+Route::delete('delquestions/{questionId}', [QuizzController::class, 'deleteQuestion']);
+Route::delete('delanswers/{answerId}', [QuizzController::class, 'deleteAnswer']);
+Route::put('{questionId}/true-answer', [QuizzController::class, 'updateTrueAnswer']);

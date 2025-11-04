@@ -9,6 +9,7 @@ class Question extends Model
     public $timestamps = false;
 
     protected $table = 'question';
+    protected $primaryKey = 'question_id';
 
     protected $fillable = [
         'quiz_id',
@@ -16,4 +17,9 @@ class Question extends Model
         'true_answer',
         'order_index'
     ];
+
+    public function answers()
+    {
+        return $this->hasMany(Answer::class, 'question_id', 'question_id');
+    }
 }
