@@ -4,11 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-namespace App\Models;
-
-use Illuminate\Database\Eloquent\Model;
-
-class HasQuesstion extends Model
+class HasQuestion extends Model
 {
     public $timestamps = false;
 
@@ -22,11 +18,11 @@ class HasQuesstion extends Model
 
     public function quizzattemp()
     {
-        return $this->belongsTo(QuizzAttemps::class, 'quiz_attemps_id', 'id');
+        return $this->belongsTo(QuizzAttemps::class, 'quiz_attemps_id', 'quiz_attemps_id');
     }
 
     public function question()
     {
-        return $this->belongsTo(Question::class, 'question_id', 'id');
+        return $this->belongsTo(Question::class, 'question_id', 'question_id');
     }
 }

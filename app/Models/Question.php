@@ -30,6 +30,6 @@ class Question extends Model
 
     public function hasquestions()
     {
-        return $this->hasMany(HasQuesstion::class, 'id', 'question_id');
+        return $this->hasMany(HasQuestion::class, 'question_id', 'question_id');
     }
 }

@@ -28,6 +28,8 @@ $app = Application::configure(basePath: dirname(__DIR__))
             'admin/lesson/*',
             'admin/quizz',
             'admin/quizz/*',
+            'attemp',
+            'attemp/*',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

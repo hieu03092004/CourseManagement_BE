@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Models\HasQuesstion;
+use App\Models\HasQuestion;
 use App\Models\QuizzAttemps;
 use Illuminate\Http\Request;
 
@@ -23,7 +23,7 @@ class QuizzAttempController
 
     public function createAnswer(Request $request, $attempId, $questionId)
     {
-        $ques = HasQuesstion::create([
+        $ques = HasQuestion::create([
             'quiz_attemps_id' => $attempId,
             'question_id' => $questionId,
             'user_choices' => $request->choice
@@ -37,7 +37,7 @@ class QuizzAttempController
 
     public function reviewQuizz($userId, $quizzId)
     {
-        $attemp = QuizzAttemps::with(['hasQuestions.question.answers'])
+        $attemp = QuizzAttemps::with(['hasquestions.question.answers'])
             ->where('user_id', $userId)
             ->where('quiz_id', $quizzId)
             ->first();
@@ -49,17 +49,11 @@ class QuizzAttempController
             ], 404);
         }
 
-        // Chuẩn bị dữ liệu câu hỏi + user choice
-        $questionsData = $attemp->hasQuestions->map(function ($hq) {
+        $questionsData = $attemp->hasquestions->map(function ($hq) {
+            $answerIds = $hq->question->answers->pluck('answer_id');
             return [
                 'question_id' => $hq->question_id,
-                'content' => $hq->question->content,
-                'answers' => $hq->question->answers->map(function ($ans) {
-                    return [
-                        'id' => $ans->id,
-                        'content' => $ans->content
-                    ];
-                }),
+                'answer_ids' => $answerIds,
                 'user_choice' => $hq->user_choices,
                 'is_correct' => $hq->user_choices == $hq->question->true_answer
             ];
@@ -67,10 +61,26 @@ class QuizzAttempController
 
         return response()->json([
             'message' => 'Review quiz thành công',
-            'data' => [
-                'attempt' => $attemp,
-                'questions' => $questionsData
-            ]
+            'data' => $questionsData
+        ]);
+    }
+
+    public function getAllAttemp($userId)
+    {
+        $attempts = QuizzAttemps::where('user_id', $userId)
+            ->orderBy('quiz_attemps_id', 'desc')
+            ->get();
+
+        if ($attempts->isEmpty()) {
+            return response()->json([
+                'message' => 'User chưa thực hiện attempt nào',
+                'data' => []
+            ], 404);
+        }
+
+        return response()->json([
+            'message' => 'Danh sách attempt của user',
+            'data' => $attempts
         ]);
     }
 }

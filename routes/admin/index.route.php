@@ -47,3 +47,8 @@ Route::prefix($prefixAdmin)->group(function () {
         require __DIR__ . '/lesson.route.php';
     });
 });
+
+//QuizzAttemp
+Route::prefix('attemp')->group(function () {
+    require __DIR__ . '/quizzattemp.route.php';
+});
