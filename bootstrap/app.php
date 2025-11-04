@@ -20,15 +20,13 @@ $app = Application::configure(basePath: dirname(__DIR__))
             'admin.auth' => \App\Http\Middleware\AdminAuthMiddleware::class,
         ]);
         $middleware->validateCsrfTokens(except: [
+            'admin/auth/login',
+            'admin/auth/logout',
             'admin/courses',
             'admin/courses/*',
             'admin/lesson',
             'admin/quizz',
-            'admin/quizz/{quizId}/questions',
-            'admin/questions/{questionId}/answers',
-            'admin/questions/{questionId}',
-            'admin/answers/{answerId}',
-            'admin/questions/{questionId}/true-answer'
+            'admin/quizz/*',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

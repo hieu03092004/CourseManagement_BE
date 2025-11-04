@@ -22,7 +22,6 @@ class QuizzController extends Controller
         // Nếu không có questions gửi lên, tạo mặc định 1 câu hỏi + 1 đáp án
         $questions = $request->questions ?? [
             [
-                'title' => 'Câu hỏi 1',
                 'content' => 'Nội dung 1',
                 'true_answer' => 0,
                 'order_index' => 1,
@@ -34,14 +33,12 @@ class QuizzController extends Controller
 
         foreach ($questions as $qIndex => $q) {
             // Nếu title trống, đặt mặc định
-            $title = $q['title'] ?? 'Câu hỏi 1';
             $content = $q['content'] ?? 'Nội dung 1';
             $true_answer = $q['true_answer'] ?? 0;
             $orderIndex = $q['order_index'] ?? ($qIndex + 1);
 
             $question = Question::create([
-                'quiz_id' => $quizz->quiz_id,
-                'title' => $title,
+                'quiz_id' => $quizz->id,
                 'content' => $content,
                 'true_answer' => $true_answer,
                 'order_index' => $orderIndex
@@ -58,7 +55,7 @@ class QuizzController extends Controller
                 $content = $a['content'] ?? 'Đáp án 1';
 
                 $answer = Answer::create([
-                    'question_id' => $question->question_id,
+                    'question_id' => $question->id,
                     'content' => $content
                 ]);
                 $createdAnswers[] = $answer;
@@ -82,7 +79,6 @@ class QuizzController extends Controller
     {
         $question = Question::create([
             'quiz_id' => $quizId,
-            'title' => $request->title ?? 'Câu hỏi 1',
             'content' => $request->content ?? 'Nội dung 1',
             'true_answer' => $request->true_answer ?? 0,
             'order_index' => $request->order_index ?? (Question::where('quiz_id', $quizId)->count() + 1)
