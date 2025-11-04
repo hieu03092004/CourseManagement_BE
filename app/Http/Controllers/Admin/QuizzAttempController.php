@@ -50,11 +50,15 @@ class QuizzAttempController
         }
 
         $questionsData = $attemp->hasquestions->map(function ($hq) {
-            $answerIds = $hq->question->answers->pluck('answer_id');
+
+            $answersMap = $hq->question->answers->pluck('content', 'id');
+
+            $userChoiceContent = $answersMap[$hq->user_choices] ?? null;
+
             return [
-                'question_id' => $hq->question_id,
-                'answer_ids' => $answerIds,
-                'user_choice' => $hq->user_choices,
+                'question' => $hq->question->content,
+                'answers' => $answersMap->values(),
+                'user_choice' => $userChoiceContent,
                 'is_correct' => $hq->user_choices == $hq->question->true_answer
             ];
         });
@@ -64,6 +68,7 @@ class QuizzAttempController
             'data' => $questionsData
         ]);
     }
+
 
     public function getAllAttemp($userId)
     {

@@ -135,7 +135,7 @@ class QuizzController extends Controller
         ]);
     }
 
-    // API cập nhật đáp án đúng cho câu hỏi
+    // API cập nhật câu hỏi
     public function updateTrueAnswer(Request $request, $questionId)
     {
         $question = Question::findOrFail($questionId);
@@ -155,6 +155,7 @@ class QuizzController extends Controller
         ]);
     }
 
+    // API xóa quizz
     public function deleteQuiz($quizzId)
     {
         $quizz = Quizz::findOrFail($quizzId);
@@ -169,6 +170,34 @@ class QuizzController extends Controller
         return response()->json([
             'message' => 'Xóa quizz thành công',
             'quizz' => $quizzId
+        ]);
+    }
+
+    // API hiển thị quiz
+    public function show($quizzId)
+    {
+        $quizz = Quizz::findOrFail($quizzId);
+
+        $questionsData = [];
+
+        foreach ($quizz->questions as $question) {
+            $answers = $question->answers()->get();
+
+            $questionsData[] = [
+                'id' => $question->question_id,
+                'content' => $question->content,
+                'true_answer' => $question->true_answer,
+                'order_index' => $question->order_index,
+                'answers' => $answers
+            ];
+        }
+
+        return response()->json([
+            'message' => 'Lấy quiz thành công',
+            'data' => [
+                'quizz' => $quizz,
+                'questions' => $questionsData
+            ]
         ]);
     }
 }

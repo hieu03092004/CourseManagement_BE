@@ -10,3 +10,4 @@ Route::delete('delquestions/{questionId}', [QuizzController::class, 'deleteQuest
 Route::delete('delanswers/{answerId}', [QuizzController::class, 'deleteAnswer']);
 Route::delete('delquizz/{quizzId}', [QuizzController::class, 'deleteQuiz']);
 Route::put('{questionId}/putquestion', [QuizzController::class, 'updateTrueAnswer']);
+Route::get('{quizzId}/getquizz', [QuizzController::class, 'show']);
