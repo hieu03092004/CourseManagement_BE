@@ -25,6 +25,7 @@ $app = Application::configure(basePath: dirname(__DIR__))
             'admin/courses',
             'admin/courses/*',
             'admin/lesson',
+            'admin/lesson/*',
             'admin/quizz',
             'admin/quizz/*',
         ]);
