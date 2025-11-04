@@ -32,13 +32,12 @@ class QuizzController extends Controller
         ];
 
         foreach ($questions as $qIndex => $q) {
-            // Nếu title trống, đặt mặc định
             $content = $q['content'] ?? 'Nội dung 1';
             $true_answer = $q['true_answer'] ?? 0;
             $orderIndex = $q['order_index'] ?? ($qIndex + 1);
 
-            $question = Question::create([
-                'quiz_id' => $quizz->id,
+            // Tạo question
+            $question = $quizz->questions()->create([
                 'content' => $content,
                 'true_answer' => $true_answer,
                 'order_index' => $orderIndex
@@ -52,12 +51,13 @@ class QuizzController extends Controller
             ];
 
             foreach ($answers as $aIndex => $a) {
-                $content = $a['content'] ?? 'Đáp án 1';
+                $answerContent = $a['content'] ?? 'Đáp án 1';
 
-                $answer = Answer::create([
-                    'question_id' => $question->id,
-                    'content' => $content
+                // Tạo answer
+                $answer = $question->answers()->create([
+                    'content' => $answerContent
                 ]);
+
                 $createdAnswers[] = $answer;
             }
 
