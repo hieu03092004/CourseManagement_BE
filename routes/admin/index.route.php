@@ -52,3 +52,7 @@ Route::prefix($prefixAdmin)->group(function () {
 Route::prefix('attemp')->group(function () {
     require __DIR__ . '/quizzattemp.route.php';
 });
+//Discussion
+Route::prefix('discuss')->group(function () {
+    require __DIR__ . '/discussion.route.php';
+});
