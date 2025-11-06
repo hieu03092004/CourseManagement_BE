@@ -161,12 +161,6 @@ class QuizzController extends Controller
     {
         $quizz = Quizz::findOrFail($quizzId);
 
-        $discussions = Discussion::where('quiz_id', $quizzId)->whereNull('parent_id')->get();
-
-        foreach ($discussions as $discussion) {
-            $this->deleteDiscussionRecursive($discussion);
-        }
-
         foreach ($quizz->questions as $question) {
             $question->answers()->delete();
             $question->delete();
@@ -178,15 +172,7 @@ class QuizzController extends Controller
             'message' => 'Xóa quizz thành công',
             'quizz' => $quizzId
         ]);
-    }
-
-    private function deleteDiscussionRecursive($discussion)
-    {
-        foreach ($discussion->children as $child) {
-            $this->deleteDiscussionRecursive($child);
-        }
-        $discussion->delete();
-    }
+    } //xóa discuss của quiz
 
     // API hiển thị quiz
     public function show($quizzId)

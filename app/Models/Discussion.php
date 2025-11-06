@@ -30,11 +30,6 @@ class Discussion extends Model
 
     public function parent()
     {
-        return $this->belongsTo(Discussion::class, 'parent_id', 'discussion_id');
-    }
-
-    public function children()
-    {
-        return $this->hasMany(Discussion::class, 'parent_id', 'discussion_id')->with('children');;
+        return $this->belongsTo(ParentDiscussion::class, 'parent_id', 'parent_id');
     }
 }
