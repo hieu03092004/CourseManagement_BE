@@ -69,4 +69,82 @@ class DiscussionController extends Controller
             'data' => $discussions
         ]);
     }
+
+    // lấy 3 bình luận (cha) mới nhất theo quiz
+    public function getParentByQuiz($quizId)
+    {
+        $discussions = Discussion::where('quiz_id', $quizId)
+            ->whereNull('parent_id')
+            ->orderByDesc('discussion_id')
+            ->take(3)
+            ->get();
+
+        return response()->json([
+            'message' => 'OK',
+            'data' => $discussions
+        ]);
+    }
+
+    // lấy ALL bình luận cha theo quiz
+    public function getAllParentByQuiz($quizId)
+    {
+        $discussions = Discussion::where('quiz_id', $quizId)
+            ->whereNull('parent_id')
+            ->orderByDesc('discussion_id')
+            ->get();
+
+        return response()->json([
+            'message' => 'OK',
+            'data' => $discussions
+        ]);
+    }
+
+    // lấy 3 bình luận con của 1 cha
+    public function getChildByParent($parentId)
+    {
+        $children = Discussion::where('parent_id', $parentId)
+            ->orderByDesc('discussion_id')
+            ->take(3)
+            ->get();
+
+        return response()->json([
+            'message' => 'OK',
+            'data' => $children
+        ]);
+    }
+
+    // lấy ALL bình luận con của 1 cha
+    public function getAllChildByParent($parentId)
+    {
+        $children = Discussion::where('parent_id', $parentId)
+            ->orderByDesc('discussion_id')
+            ->get();
+
+        return response()->json([
+            'message' => 'OK',
+            'data' => $children
+        ]);
+    }
+
+    // đếm tổng số lượng bình luận của 1 quiz (bao gồm cả cha + con)
+    public function countDiscussionByQuiz($quizId)
+    {
+        $count = Discussion::where('quiz_id', $quizId)->count();
+
+        return response()->json([
+            'message' => 'OK',
+            'count'   => $count
+        ]);
+    }
+
+    // đếm tổng số lượng trả lời của 1 cha
+    public function countReplyByParent($parentId)
+    {
+        $count = Discussion::where('parent_id', $parentId)->count();
+
+        return response()->json([
+            'message' => 'OK',
+            'count'   => $count
+        ]);
+    }
 }
