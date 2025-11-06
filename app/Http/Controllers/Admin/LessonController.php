@@ -3,8 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Discussion;
 use Illuminate\Http\Request;
 use App\Models\Lesson;
+use App\Models\ParentDiscussion;
+use App\Models\Quizz;
 use Illuminate\Support\Facades\Storage;
 
 class LessonController extends Controller
@@ -81,12 +84,64 @@ class LessonController extends Controller
             Storage::disk('public')->delete($lesson->video_url);
         }
 
+        foreach ($lesson->quizzes as $quizz) {
+            $this->deleteQuizRecursive($quizz);
+        }
+
         $lesson->delete();
 
         return response()->json([
             'message' => 'Xóa lesson thành công'
         ]);
+    } //xóa luôn quiz
+
+    private function deleteQuizRecursive(Quizz $quizz)
+    {
+        foreach ($quizz->quizzatemps as $attemp) {
+            $attemp->hasquestions()->delete();
+            $attemp->delete();
+        }
+
+        foreach ($quizz->questions as $question) {
+            $question->answers()->delete();
+            $question->delete();
+        }
+
+        foreach ($quizz->discussions as $discuss) {
+            $this->deleteDiscussionTree($discuss->discussion_id);
+        }
+
+        $quizz->delete();
     }
+
+    private function deleteDiscussionTree($id)
+    {
+        $children = Discussion::where('parent_id', $id)->get();
+
+        foreach ($children as $child) {
+            $this->deleteDiscussionTree($child->discussion_id);
+        }
+
+        ParentDiscussion::where('parent_id', $id)->delete();
+        Discussion::where('discussion_id', $id)->delete();
+    }
+
+    public function showByModule($courses_module_id)
+    {
+        $lessons = Lesson::where('courses_module_id', $courses_module_id)
+            ->orderBy('order_index')
+            ->get()
+            ->map(function ($x) {
+                $x->video_url_full = $x->video_url ? asset('storage/' . $x->video_url) : null;
+                return $x;
+            });
+
+        return response()->json([
+            'message' => 'Danh sách lesson theo module',
+            'data' => $lessons
+        ]);
+    }
+
 
     public function fullLesson() {}
 }

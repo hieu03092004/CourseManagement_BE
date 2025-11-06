@@ -18,4 +18,9 @@ class Lesson extends Model
         'duration',
         'order_index'
     ];
+
+    public function quizzes()
+    {
+        return $this->hasMany(Quizz::class, 'lesson_id', 'lesson_id');
+    }
 }

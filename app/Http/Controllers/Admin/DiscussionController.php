@@ -29,23 +29,27 @@ class DiscussionController extends Controller
         ]);
     }
 
-    public function delete($discussionId)
+    public function delete($id)
     {
-        $discussion = Discussion::findOrFail($discussionId);
-
-        if (!$discussion->parent_id) {
-            Discussion::where('parent_id', $discussionId)->delete();
-
-            ParentDiscussion::where('parent_id', $discussionId)->delete();
-        }
-
-        $discussion->delete();
+        $this->deleteDiscussionTree($id);
 
         return response()->json([
             'message' => 'Xoá discussion thành công'
         ]);
     }
 
+    private function deleteDiscussionTree($id)
+    {
+        $children = Discussion::where('parent_id', $id)->get();
+
+        foreach ($children as $child) {
+            $this->deleteDiscussionTree($child->discussion_id);
+        }
+
+        ParentDiscussion::where('parent_id', $id)->delete();
+
+        Discussion::where('discussion_id', $id)->delete();
+    }
 
     public function edit(Request $request, $discussionId)
     {
@@ -57,6 +61,60 @@ class DiscussionController extends Controller
 
         return response()->json([
             'message' => 'Cập nhật discussion thành công',
+            'data' => $discussion
+        ]);
+    }
+
+    //lấy 3 discussion cha (parent_id = null)
+    public function showparent($quizId)
+    {
+        $discussion = Discussion::where('quiz_id', $quizId)
+            ->whereNull('parent_id')
+            ->orderByDesc('discussion_id')
+            ->limit(3)
+            ->get();
+
+        return response()->json([
+            'data' => $discussion
+        ]);
+    }
+
+    //lấy all discussion cha (parent_id = null)
+    public function showallparent($quizId)
+    {
+        $discussion = Discussion::where('quiz_id', $quizId)
+            ->whereNull('parent_id')
+            ->orderByDesc('discussion_id')
+            ->get();
+
+        return response()->json([
+            'data' => $discussion
+        ]);
+    }
+
+    //lấy 3 discuss con
+    public function showchild($quizId, $parentId)
+    {
+        $discussion = Discussion::where('quiz_id', $quizId)
+            ->where('parent_id', $parentId)
+            ->orderByDesc('discussion_id')
+            ->limit(3)
+            ->get();
+
+        return response()->json([
+            'data' => $discussion
+        ]);
+    }
+
+    //lấy all discuss con
+    public function showchildren($quizId, $parentId)
+    {
+        $discussion = Discussion::where('quiz_id', $quizId)
+            ->where('parent_id', $parentId)
+            ->orderByDesc('discussion_id')
+            ->get();
+
+        return response()->json([
             'data' => $discussion
         ]);
     }

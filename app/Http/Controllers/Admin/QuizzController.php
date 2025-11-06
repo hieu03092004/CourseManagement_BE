@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Answer;
 use App\Models\Discussion;
+use App\Models\ParentDiscussion;
 use App\Models\Question;
 use App\Models\Quizz;
 use Illuminate\Http\Request;
@@ -161,9 +162,18 @@ class QuizzController extends Controller
     {
         $quizz = Quizz::findOrFail($quizzId);
 
+        foreach ($quizz->quizzatemps as $attemp) {
+            $attemp->hasquestions()->delete();
+            $attemp->delete();
+        }
+
         foreach ($quizz->questions as $question) {
             $question->answers()->delete();
             $question->delete();
+        }
+
+        foreach ($quizz->discussions as $discuss) {
+            $this->deleteDiscussionTree($discuss->discussion_id);
         }
 
         $quizz->delete();
@@ -172,7 +182,20 @@ class QuizzController extends Controller
             'message' => 'Xóa quizz thành công',
             'quizz' => $quizzId
         ]);
-    } //xóa discuss của quiz
+    }
+
+    private function deleteDiscussionTree($id)
+    {
+        $children = Discussion::where('parent_id', $id)->get();
+
+        foreach ($children as $child) {
+            $this->deleteDiscussionTree($child->discussion_id);
+        }
+
+        ParentDiscussion::where('parent_id', $id)->delete();
+
+        Discussion::where('discussion_id', $id)->delete();
+    }
 
     // API hiển thị quiz
     public function show($quizzId)

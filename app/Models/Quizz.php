@@ -24,4 +24,14 @@ class Quizz extends Model
     {
         return $this->hasMany(Discussion::class, 'quiz_id', 'quiz_id');
     }
+
+    public function quizzatemps()
+    {
+        return $this->hasMany(QuizzAttemps::class, 'quiz_id', 'quiz_id');
+    }
+
+    public function lesson()
+    {
+        return $this->belongsTo(Lesson::class, 'lesson_id', 'lesson_id');
+    }
 }
