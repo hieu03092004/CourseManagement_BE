@@ -7,8 +7,8 @@ use Illuminate\Support\Facades\Route;
 
 $app = Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
-        web: __DIR__.'/../routes/web.php',
-        commands: __DIR__.'/../routes/console.php',
+        web: __DIR__ . '/../routes/web.php',
+        commands: __DIR__ . '/../routes/console.php',
         health: '/up',
         then: function () {
             Route::middleware('web')
@@ -20,8 +20,19 @@ $app = Application::configure(basePath: dirname(__DIR__))
             'admin.auth' => \App\Http\Middleware\AdminAuthMiddleware::class,
         ]);
         $middleware->validateCsrfTokens(except: [
+            'admin/auth/login',
+            'admin/auth/logout',
             'admin/*',
+            'admin/courses',
             'admin/courses/*',
+            'admin/lesson',
+            'admin/lesson/*',
+            'admin/quizz',
+            'admin/quizz/*',
+            'attemp',
+            'attemp/*',
+            'discuss',
+            'discuss/*'
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
