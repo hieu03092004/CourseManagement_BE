@@ -22,6 +22,7 @@ $app = Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: [
             'admin/auth/login',
             'admin/auth/logout',
+            'admin/*',
             'admin/courses',
             'admin/courses/*',
             'admin/lesson',
