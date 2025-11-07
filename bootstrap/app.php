@@ -19,6 +19,10 @@ $app = Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'admin.auth' => \App\Http\Middleware\AdminAuthMiddleware::class,
         ]);
+        $middleware->validateCsrfTokens(except: [
+            'admin/*',
+            'admin/courses/*',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

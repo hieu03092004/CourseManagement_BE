@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\LoaiSua;
+use App\Models\Course;
 
 use Illuminate\Http\Request;
 
@@ -12,12 +12,12 @@ class ProductController extends Controller
     public function index()
     {
         // Lấy data từ database qua Model LoaiSua
-        $loaiSua = LoaiSua::getAll();
+        $course = Course::getAll();
 
         return response()->json([
-            'pageTitle' => 'Danh sách loại sữa',
-            'data' => $loaiSua,
-            'total' => count($loaiSua),
+            'pageTitle' => 'Danh sách khoá học',
+            'data' => $course,
+            'total' => count($course),
         ]);
     }
 

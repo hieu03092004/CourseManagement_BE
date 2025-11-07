@@ -10,7 +10,7 @@ Route::prefix($prefixAdmin . '/auth')->group(function () {
 });
 
 // Protected admin routes (with auth middleware)
-Route::prefix($prefixAdmin)->middleware('admin.auth')->group(function () {
+Route::prefix($prefixAdmin)->group(function () {
     // Dashboard
     Route::prefix('dashboard')->group(function () {
         require __DIR__ . '/dashboard.route.php';
@@ -47,8 +47,21 @@ Route::prefix($prefixAdmin)->middleware('admin.auth')->group(function () {
     });
 
     // Test Database (development only)
-    Route::prefix('test-database')->group(function () {
-        require __DIR__ . '/test-database.route.php';
+    // Route::prefix('test-database')->group(function () {
+    //     require __DIR__ . '/test-database.route.php';
+    // });
+
+    // Courses
+    Route::prefix('courses')->group(function () {
+        require __DIR__ . '/course.route.php';
+    });
+
+    // CourseModule
+    Route::prefix('coursesmodule')->group(function () {
+        require __DIR__ . '/coursemodule.route.php';
+    });
+
+    Route::prefix('reviews')->group(function () {
+        require __DIR__ . '/review.route.php';  // Bao gồm file review.route.php vào đây
     });
 });
-
