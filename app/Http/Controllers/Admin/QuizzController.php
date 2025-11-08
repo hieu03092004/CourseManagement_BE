@@ -79,6 +79,7 @@ class QuizzController extends Controller
     // API thêm câu hỏi cho quiz
     public function addQuestion(Request $request, $quizId)
     {
+        // Tạo question
         $question = Question::create([
             'quiz_id' => $quizId,
             'content' => $request->content ?? 'Nội dung 1',
@@ -86,11 +87,31 @@ class QuizzController extends Controller
             'order_index' => $request->order_index ?? (Question::where('quiz_id', $quizId)->count() + 1)
         ]);
 
+        $createdAnswers = [];
+
+        // Lấy answers nếu có, nếu không thì tạo mặc định 1 đáp án
+        $answers = $request->answers ?? [
+            ['content' => 'Đáp án 1']
+        ];
+
+        foreach ($answers as $aIndex => $a) {
+            $answerContent = $a['content'] ?? 'Đáp án 1';
+
+            $answer = $question->answers()->create([
+                'content' => $answerContent
+            ]);
+
+            $createdAnswers[] = $answer;
+        }
+
+        $question->answers = $createdAnswers;
+
         return response()->json([
             'message' => 'Thêm câu hỏi thành công',
             'question' => $question
         ]);
     }
+
 
     // API thêm đáp án cho câu hỏi
     public function addAnswer(Request $request, $questionId)
