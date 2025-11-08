@@ -79,6 +79,7 @@ class QuizzController extends Controller
     // API thêm câu hỏi cho quiz
     public function addQuestion(Request $request, $quizId)
     {
+        // Tạo question
         $question = Question::create([
             'quiz_id' => $quizId,
             'content' => $request->content ?? 'Nội dung 1',
@@ -86,19 +87,31 @@ class QuizzController extends Controller
             'order_index' => $request->order_index ?? (Question::where('quiz_id', $quizId)->count() + 1)
         ]);
 
-        // Tạo mặc định 1 đáp án nếu không có
-        $answer = Answer::create([
-            'question_id' => $question->id,
-            'content' => 'Đáp án 1'
-        ]);
+        $createdAnswers = [];
 
-        $question->answers = [$answer];
+        // Lấy answers nếu có, nếu không thì tạo mặc định 1 đáp án
+        $answers = $request->answers ?? [
+            ['content' => 'Đáp án 1']
+        ];
+
+        foreach ($answers as $aIndex => $a) {
+            $answerContent = $a['content'] ?? 'Đáp án 1';
+
+            $answer = $question->answers()->create([
+                'content' => $answerContent
+            ]);
+
+            $createdAnswers[] = $answer;
+        }
+
+        $question->answers = $createdAnswers;
 
         return response()->json([
             'message' => 'Thêm câu hỏi thành công',
             'question' => $question
         ]);
     }
+
 
     // API thêm đáp án cho câu hỏi
     public function addAnswer(Request $request, $questionId)
@@ -198,30 +211,38 @@ class QuizzController extends Controller
     }
 
     // API hiển thị quiz
-    public function show($quizzId)
+    public function showquiz($lessonId)
     {
-        $quizz = Quizz::findOrFail($quizzId);
-
-        $questionsData = [];
-
-        foreach ($quizz->questions as $question) {
-            $answers = $question->answers()->get();
-
-            $questionsData[] = [
-                'id' => $question->question_id,
-                'content' => $question->content,
-                'true_answer' => $question->true_answer,
-                'order_index' => $question->order_index,
-                'answers' => $answers
-            ];
-        }
+        $quizz = Quizz::where('lesson_id', $lessonId)
+            ->get();
 
         return response()->json([
             'message' => 'Lấy quiz thành công',
-            'data' => [
-                'quizz' => $quizz,
-                'questions' => $questionsData
-            ]
+            'data' => $quizz
+        ]);
+    }
+
+    // API hiển thị question
+    public function showquestion($quizzId)
+    {
+        $questions = Question::where('quiz_id', $quizzId)
+            ->get();
+
+        return response()->json([
+            'message' => 'Lấy questions thành công',
+            'data' => $questions
+        ]);
+    }
+
+    //API hiển thị answer
+    public function showanswer($questionId)
+    {
+        $answers = Answer::where('question_id', $questionId)
+            ->get();
+
+        return response()->json([
+            'message' => 'Lấy questions thành công',
+            'data' => $answers
         ]);
     }
 }

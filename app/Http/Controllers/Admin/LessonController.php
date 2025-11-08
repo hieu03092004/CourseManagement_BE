@@ -143,5 +143,5 @@ class LessonController extends Controller
     }
 
 
-    public function fullLesson() {}
+    // public function fullLesson() {}
 }
