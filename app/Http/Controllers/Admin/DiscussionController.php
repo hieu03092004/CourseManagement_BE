@@ -65,40 +65,12 @@ class DiscussionController extends Controller
         ]);
     }
 
-    //lấy 3 discussion cha (parent_id = null)
-    public function showparent($quizId)
-    {
-        $discussion = Discussion::where('quiz_id', $quizId)
-            ->whereNull('parent_id')
-            ->orderByDesc('discussion_id')
-            ->limit(3)
-            ->get();
-
-        return response()->json([
-            'data' => $discussion
-        ]);
-    }
-
     //lấy all discussion cha (parent_id = null)
     public function showallparent($quizId)
     {
         $discussion = Discussion::where('quiz_id', $quizId)
             ->whereNull('parent_id')
             ->orderByDesc('discussion_id')
-            ->get();
-
-        return response()->json([
-            'data' => $discussion
-        ]);
-    }
-
-    //lấy 3 discuss con
-    public function showchild($quizId, $parentId)
-    {
-        $discussion = Discussion::where('quiz_id', $quizId)
-            ->where('parent_id', $parentId)
-            ->orderByDesc('discussion_id')
-            ->limit(3)
             ->get();
 
         return response()->json([
