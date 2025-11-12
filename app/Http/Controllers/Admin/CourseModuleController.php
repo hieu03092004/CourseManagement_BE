@@ -9,7 +9,7 @@ use App\Models\CourseModule;
 class CourseModuleController extends Controller
 {
     /**
-     * Hiển thị danh sách module
+     * Hiển thị danh sách tất cả module
      */
     public function index()
     {
@@ -64,11 +64,31 @@ class CourseModuleController extends Controller
     }
 
     /**
-     * Hiển thị chi tiết module
+     * Hiển thị chi tiết module (chỉ module)
      */
-    public function show($id)
+    public function showBasic($id)
     {
         $module = CourseModule::find($id);
+
+        if (!$module) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Module không tồn tại'
+            ], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $module
+        ]);
+    }
+
+    /**
+     * Hiển thị chi tiết module kèm lesson + quiz
+     */
+    public function showDetail($id)
+    {
+        $module = CourseModule::getModuleStructure($id);
 
         if (!$module) {
             return response()->json([
@@ -103,12 +123,8 @@ class CourseModuleController extends Controller
             'TITLE' => 'sometimes|string|max:255',
         ]);
 
-        // Đảm bảo các giá trị tồn tại khi bind_param
-        $data = array_merge([
-            'COURSES_ID' => $module['COURSES_ID'],
-            'ORDER_INDEX' => $module['ORDER_INDEX'],
-            'TITLE' => $module['TITLE']
-        ], $validated);
+        // Merge dữ liệu hiện tại với dữ liệu gửi lên
+        $data = array_merge($module, $validated);
 
         $success = CourseModule::update($id, $data);
 

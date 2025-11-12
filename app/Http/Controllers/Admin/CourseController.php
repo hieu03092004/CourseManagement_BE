@@ -9,7 +9,7 @@ use App\Models\Course;
 class CourseController extends Controller
 {
     /**
-     * Hiển thị danh sách khoá học
+     * Danh sách khoá học
      */
     public function index()
     {
@@ -38,72 +38,55 @@ class CourseController extends Controller
             'DISCOUNT_PERCENT' => 'nullable|numeric'
         ]);
 
-        $course = Course::create($validated);
+        $courseId = Course::create($validated);
 
         return response()->json([
-            'success' => true,
-            'message' => 'Tạo khoá học thành công!',
-            'course' => $course
+            'success' => (bool)$courseId,
+            'message' => $courseId ? 'Tạo khoá học thành công!' : 'Tạo khoá học thất bại!',
+            'course_id' => $courseId
         ]);
     }
 
     /**
      * Cập nhật khoá học
      */
-    // public function update(Request $request, $id)
-    // {
-    //     $course = Course::find($id);
-    //     if (!$course) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Khoá học không tồn tại'
-    //         ], 404);
-    //     }
+    public function update(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'TITLE' => 'sometimes|string|max:255',
+            'DESCRIPTION' => 'sometimes|string',
+            'TARGET' => 'sometimes|string',
+            'RESULT' => 'sometimes|string',
+            'IMAGE' => 'nullable|string',
+            'DURATION' => 'sometimes|integer',
+            'PRICE' => 'sometimes|numeric',
+            'TYPE' => 'sometimes|string',
+            'DISCOUNT_PERCENT' => 'nullable|numeric'
+        ]);
 
-    //     $validated = $request->validate([
-    //         'TITLE' => 'sometimes|string|max:255',
-    //         'DESCRIPTION' => 'sometimes|string',
-    //         'TARGET' => 'sometimes|string',
-    //         'RESULT' => 'sometimes|string',
-    //         'IMAGE' => 'nullable|string',
-    //         'DURATION' => 'sometimes|integer',
-    //         'PRICE' => 'sometimes|numeric',
-    //         'TYPE' => 'sometimes|string',
-    //         'DISCOUNT_PERCENT' => 'nullable|numeric'
-    //     ]);
+        $success = Course::update($id, $validated);
 
-    //     $course->update($validated);
-
-    //     return response()->json([
-    //         'success' => true,
-    //         'message' => 'Cập nhật khoá học thành công!',
-    //         'course' => $course
-    //     ]);
-    // }
-
-    // /**
-    //  * Xoá khoá học
-    //  */
-    // public function destroy($id)
-    // {
-    //     $course = Course::find($id);
-    //     if (!$course) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Khoá học không tồn tại'
-    //         ], 404);
-    //     }
-
-    //     $course->delete();
-
-    //     return response()->json([
-    //         'success' => true,
-    //         'message' => 'Xoá khoá học thành công!'
-    //     ]);
-    // }
+        return response()->json([
+            'success' => $success,
+            'message' => $success ? 'Cập nhật khoá học thành công!' : 'Cập nhật khoá học thất bại!'
+        ]);
+    }
 
     /**
-     * Hiển thị trang chi tiết khóa học
+     * Xoá khoá học
+     */
+    public function destroy($id)
+    {
+        $success = Course::delete($id);
+
+        return response()->json([
+            'success' => $success,
+            'message' => $success ? 'Xoá khoá học thành công!' : 'Xoá khoá học thất bại!'
+        ]);
+    }
+
+    /**
+     * Chi tiết khóa học
      */
     public function show($courseId)
     {

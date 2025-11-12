@@ -4,11 +4,11 @@ namespace App\Models;
 
 use App\Helpers\DatabaseHelper;
 use App\Database\MySQLConnection;
+
 class Course
 {
     /**
-     *
-     * @return array
+     * Lấy tất cả khoá học
      */
     public static function getAll()
     {
@@ -28,14 +28,10 @@ class Course
     }
 
     /**
-     * Create a new course
-     *
-     * @param array $data
-     * @return int|false  returns inserted course ID or false if failed
+     * Tạo khoá học mới
      */
     public static function create(array $data)
     {
-        // Build query with prepared statement to avoid SQL injection
         $conn = MySQLConnection::connect();
 
         $stmt = $conn->prepare("INSERT INTO COURSES 
@@ -68,7 +64,55 @@ class Course
     }
 
     /**
-     * Lấy thông tin khóa học cơ bản + thống kê
+     * Cập nhật khóa học
+     */
+    public static function update($courseId, array $data)
+    {
+        $conn = MySQLConnection::connect();
+
+        // Xây dựng query động
+        $fields = [];
+        $params = [];
+        $types = "";
+
+        foreach ($data as $key => $value) {
+            $fields[] = "$key = ?";
+            $params[] = $value;
+
+            // Định nghĩa kiểu dữ liệu (đơn giản hoá)
+            if (in_array($key, ['USER_ID', 'DURATION', 'TOTAL_STUDENTS'])) {
+                $types .= "i";
+            } elseif (in_array($key, ['PRICE', 'DISCOUNT_PERCENT', 'RATING_AVG'])) {
+                $types .= "d";
+            } else {
+                $types .= "s";
+            }
+        }
+
+        $setClause = implode(", ", $fields);
+        $query = "UPDATE COURSES SET $setClause, UPDATED_AT = NOW() WHERE COURSES_ID = ?";
+
+        $stmt = $conn->prepare($query);
+        $types .= "i";
+        $params[] = $courseId;
+
+        $stmt->bind_param($types, ...$params);
+        return $stmt->execute();
+    }
+
+    /**
+     * Xoá khóa học
+     */
+    public static function delete($courseId)
+    {
+        $conn = MySQLConnection::connect();
+        $stmt = $conn->prepare("DELETE FROM COURSES WHERE COURSES_ID = ?");
+        $stmt->bind_param("i", $courseId);
+        return $stmt->execute();
+    }
+
+    /**
+     * Lấy thông tin cơ bản + thống kê
      */
     public static function getCourseInfo($courseId)
     {
@@ -95,7 +139,7 @@ class Course
         $result = $stmt->get_result();
         return $result->fetch_assoc();
     }
-
+    
     /**
      * Lấy danh sách module + lesson + quiz theo khóa học
      */
@@ -103,7 +147,7 @@ class Course
     {
         $conn = MySQLConnection::connect();
 
-        // Lấy module
+        // Lấy danh sách module
         $queryModule = "SELECT * FROM COURSE_MODULES WHERE COURSES_ID = ? ORDER BY ORDER_INDEX ASC";
         $stmtModule = $conn->prepare($queryModule);
         $stmtModule->bind_param("i", $courseId);
@@ -113,8 +157,19 @@ class Course
         $modules = [];
         while ($module = $modulesResult->fetch_assoc()) {
 
-            // Lấy bài học thuộc module này
-            $queryLesson = "SELECT * FROM LESSON WHERE COURSES_MODULES_ID = ? ORDER BY ORDER_INDEX ASC";
+            // Lấy danh sách bài học thuộc module này
+            $queryLesson = "
+            SELECT 
+                LESSON_ID,
+                COURSES_MODULES_ID,
+                TITLE,
+                ORDER_INDEX,
+                VIDEO_URL
+            FROM LESSON 
+            WHERE COURSES_MODULES_ID = ?
+            ORDER BY ORDER_INDEX ASC
+        ";
+
             $stmtLesson = $conn->prepare($queryLesson);
             $stmtLesson->bind_param("i", $module['COURSES_MODULES_ID']);
             $stmtLesson->execute();
@@ -123,7 +178,7 @@ class Course
             $lessons = [];
             while ($lesson = $lessonsResult->fetch_assoc()) {
 
-                // Lấy quiz thuộc lesson
+                // Lấy quiz thuộc lesson này
                 $queryQuiz = "SELECT QUIZ_ID FROM QUIZZ WHERE LESSON_ID = ?";
                 $stmtQuiz = $conn->prepare($queryQuiz);
                 $stmtQuiz->bind_param("i", $lesson['LESSON_ID']);
@@ -135,10 +190,12 @@ class Course
                     $quizzes[] = $quiz;
                 }
 
+                // Gán danh sách quiz vào bài học
                 $lesson['QUIZZES'] = $quizzes;
                 $lessons[] = $lesson;
             }
 
+            // Gán danh sách bài học vào module
             $module['LESSONS'] = $lessons;
             $modules[] = $module;
         }
@@ -146,8 +203,9 @@ class Course
         return $modules;
     }
 
+
     /**
-     * Lấy danh sách review của khóa học
+     * Lấy danh sách review
      */
     public static function getCourseReviews($courseId)
     {
@@ -178,4 +236,3 @@ class Course
         return $reviews;
     }
 }
-

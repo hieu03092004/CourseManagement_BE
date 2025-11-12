@@ -127,5 +127,59 @@ class CourseModule
         return $modules;
     }
 
-    
+
+    /**
+     * Lấy chi tiết module kèm danh sách lesson + quiz
+     *
+     * @param int $moduleId
+     * @return array|false
+     */
+    public static function getModuleStructure($moduleId)
+    {
+        $conn = MySQLConnection::connect();
+
+        // Lấy thông tin module
+        $stmtModule = $conn->prepare("SELECT * FROM COURSE_MODULES WHERE COURSES_MODULES_ID = ?");
+        $stmtModule->bind_param("i", $moduleId);
+        $stmtModule->execute();
+        $moduleResult = $stmtModule->get_result();
+        $module = $moduleResult->fetch_assoc();
+
+        if (!$module) {
+            return false; // Module không tồn tại
+        }
+
+        // Lấy danh sách lesson của module này
+        $stmtLesson = $conn->prepare("
+        SELECT LESSON_ID, COURSES_MODULES_ID, TITLE, ORDER_INDEX, VIDEO_URL
+        FROM LESSON
+        WHERE COURSES_MODULES_ID = ?
+        ORDER BY ORDER_INDEX ASC
+    ");
+        $stmtLesson->bind_param("i", $moduleId);
+        $stmtLesson->execute();
+        $lessonsResult = $stmtLesson->get_result();
+
+        $lessons = [];
+        while ($lesson = $lessonsResult->fetch_assoc()) {
+
+            // Lấy quiz của lesson
+            $stmtQuiz = $conn->prepare("SELECT QUIZ_ID FROM QUIZZ WHERE LESSON_ID = ?");
+            $stmtQuiz->bind_param("i", $lesson['LESSON_ID']);
+            $stmtQuiz->execute();
+            $quizResult = $stmtQuiz->get_result();
+
+            $quizzes = [];
+            while ($quiz = $quizResult->fetch_assoc()) {
+                $quizzes[] = $quiz;
+            }
+
+            $lesson['QUIZZES'] = $quizzes;
+            $lessons[] = $lesson;
+        }
+
+        $module['LESSONS'] = $lessons;
+
+        return $module;
+    }
 }
