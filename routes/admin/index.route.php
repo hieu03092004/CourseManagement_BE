@@ -64,7 +64,11 @@ Route::prefix($prefixAdmin)->group(function () {
     });
 
     Route::prefix('reviews')->group(function () {
-        require __DIR__ . '/review.route.php';  // Bao gồm file review.route.php vào đây
+        require __DIR__ . '/review.route.php';
+    });
+
+    Route::prefix('enroll')->group(function () { 
+        require __DIR__ . '/enroll.route.php'; 
     });
 });
 
