@@ -8,152 +8,81 @@ use App\Models\CourseModule;
 
 class CourseModuleController extends Controller
 {
-    /**
-     * Hiển thị danh sách module
-     */
-    public function index()
+    // 1. Tạo module cho khóa học
+    public function create(Request $request, $courseId)
     {
-        $modules = CourseModule::getAll();
+        $request->validate([
+            'title' => 'required',
+            'order_index' => 'nullable|integer',
+        ]);
+
+        $module = CourseModule::create([
+            'courses_id' => $courseId,
+            'title' => $request->title,
+            'order_index' => $request->order_index ?? 0,
+        ]);
 
         return response()->json([
-            'success' => true,
-            'data' => $modules
+            'message' => 'Module created successfully',
+            'module_id' => $module->courses_modules_id,
         ]);
     }
 
-    /**
-     * Lấy module theo khóa học
-     */
-    public function getByCourse($courseId)
-    {
-        $modules = CourseModule::getByCourseId($courseId);
-
-        return response()->json([
-            'success' => true,
-            'data' => $modules
-        ]);
-    }
-
-    /**
-     * Tạo module mới
-     */
-    public function store(Request $request)
-    {
-        $validated = $request->validate([
-            'COURSES_ID' => 'required|integer',
-            'ORDER_INDEX' => 'required|integer',
-            'TITLE' => 'required|string|max:255',
-        ]);
-
-        $moduleId = CourseModule::create($validated);
-
-        if (!$moduleId) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Tạo module thất bại'
-            ], 500);
-        }
-
-        $module = CourseModule::find($moduleId);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Tạo module thành công!',
-            'module' => $module
-        ]);
-    }
-
-    /**
-     * Hiển thị chi tiết module
-     */
-    public function show($id)
-    {
-        $module = CourseModule::find($id);
-
-        if (!$module) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Module không tồn tại'
-            ], 404);
-        }
-
-        return response()->json([
-            'success' => true,
-            'data' => $module
-        ]);
-    }
-
-    /**
-     * Cập nhật module
-     */
+    // 2. Cập nhật module
     public function update(Request $request, $id)
     {
-        $module = CourseModule::find($id);
+        $module = CourseModule::findOrFail($id);
 
-        if (!$module) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Module không tồn tại'
-            ], 404);
-        }
-
-        $validated = $request->validate([
-            'COURSES_ID' => 'sometimes|integer',
-            'ORDER_INDEX' => 'sometimes|integer',
-            'TITLE' => 'sometimes|string|max:255',
+        $module->update([
+            'title' => $request->title ?? $module->title,
+            'order_index' => $request->order_index ?? $module->order_index,
         ]);
 
-        // Đảm bảo các giá trị tồn tại khi bind_param
-        $data = array_merge([
-            'COURSES_ID' => $module['COURSES_ID'],
-            'ORDER_INDEX' => $module['ORDER_INDEX'],
-            'TITLE' => $module['TITLE']
-        ], $validated);
-
-        $success = CourseModule::update($id, $data);
-
-        if (!$success) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Cập nhật module thất bại'
-            ], 500);
-        }
-
-        $updatedModule = CourseModule::find($id);
-
         return response()->json([
-            'success' => true,
-            'message' => 'Cập nhật module thành công!',
-            'module' => $updatedModule
+            'message' => 'Module updated successfully'
         ]);
     }
 
-    /**
-     * Xóa module
-     */
-    public function destroy($id)
+    // 3. Xóa module
+    public function delete($id)
     {
-        $module = CourseModule::find($id);
-
-        if (!$module) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Module không tồn tại'
-            ], 404);
-        }
-
-        $success = CourseModule::delete($id);
-
-        if (!$success) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Xóa module thất bại'
-            ], 500);
-        }
+        $module = CourseModule::findOrFail($id);
+        $module->delete();
 
         return response()->json([
-            'success' => true,
-            'message' => 'Xóa module thành công!'
+            'message' => 'Module deleted successfully'
+        ]);
+    }
+
+    // 4. Hiển thị danh sách module cho khóa học
+    public function getModulesByCourse($courseId)
+    {
+        $modules = CourseModule::with(['lessons.quizzes'])
+            ->where('courses_id', $courseId)
+            ->get();
+
+        $response = $modules->map(function ($module) {
+            return [
+                'COURSES_MODULES_ID' => $module->courses_modules_id,
+                'TITLE' => $module->title,
+                'ORDER_INDEX' => $module->order_index,
+                'LESSONS' => $module->lessons->map(function ($lesson) {
+                    return [
+                        'LESSON_ID' => $lesson->lesson_id,
+                        'TITLE' => $lesson->title,
+                        'ORDER_INDEX' => $lesson->order_index,
+                        'VIDEO_URL' => $lesson->video_url,
+                        'QUIZZES' => $lesson->quizzes->map(function ($quiz) {
+                            return ['QUIZ_ID' => $quiz->quiz_id];
+                        }),
+                    ];
+                }),
+            ];
+        });
+
+        return response()->json([
+            'data' => $response
         ]);
     }
 }
+
