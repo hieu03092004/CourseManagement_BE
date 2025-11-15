@@ -59,7 +59,7 @@ Route::prefix($prefixAdmin)->group(function () {
     });
 
     // CourseModule
-    Route::prefix('coursesmodule')->group(function () {
+    Route::prefix('module')->group(function () {
         require __DIR__ . '/coursemodule.route.php';
     });
 

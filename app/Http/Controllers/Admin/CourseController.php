@@ -8,129 +8,124 @@ use App\Models\Course;
 
 class CourseController extends Controller
 {
-    /**
-     * Hiển thị danh sách khoá học
-     */
-    public function index()
+    // 1. Tạo khóa học mới
+    public function create(Request $request)
     {
-        $courses = Course::getAll();
+        $request->validate([
+            'title' => 'required',
+            'price' => 'required|numeric',
+            'type' => 'required',
+        ]);
+
+        $course = Course::create([
+            'user_id' => $request->user_id ?? null,
+            'title' => $request->title,
+            'description' => $request->description,
+            'target' => $request->target,
+            'result' => $request->result,
+            'image' => $request->image ?? null,
+            'duration' => $request->duration ?? 0,
+            'price' => $request->price,
+            'type' => $request->type,
+            'discount_percent' => $request->discount_percent ?? 0,
+            'rating_avg' => 0,
+            'total_students' => 0,
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
+
         return response()->json([
-            'success' => true,
+            'message' => 'Course created successfully',
+            'course_id' => $course->courses_id
+        ]);
+    }
+
+
+    // 2. Lấy danh sách khóa học theo User
+    public function getCoursesByUser($userId)
+    {
+        $courses = Course::where('user_id', $userId)->get();
+
+        return response()->json([
             'data' => $courses
         ]);
     }
 
-    /**
-     * Tạo khoá học mới
-     */
-    public function store(Request $request)
+    // 3. Cập nhật thông tin khóa học
+    public function update(Request $request, $id)
     {
-        $validated = $request->validate([
-            'USER_ID' => 'required|integer',
-            'TITLE' => 'required|string|max:255',
-            'DESCRIPTION' => 'required|string',
-            'TARGET' => 'required|string',
-            'RESULT' => 'required|string',
-            'IMAGE' => 'nullable|string',
-            'DURATION' => 'required|integer',
-            'PRICE' => 'required|numeric',
-            'TYPE' => 'required|string',
-            'DISCOUNT_PERCENT' => 'nullable|numeric'
-        ]);
+        $course = Course::findOrFail($id);
 
-        $course = Course::create($validated);
+        $course->update($request->all());
 
         return response()->json([
-            'success' => true,
-            'message' => 'Tạo khoá học thành công!',
-            'course' => $course
+            'message' => 'Course updated successfully'
         ]);
     }
 
-    /**
-     * Cập nhật khoá học
-     */
-    // public function update(Request $request, $id)
-    // {
-    //     $course = Course::find($id);
-    //     if (!$course) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Khoá học không tồn tại'
-    //         ], 404);
-    //     }
 
-    //     $validated = $request->validate([
-    //         'TITLE' => 'sometimes|string|max:255',
-    //         'DESCRIPTION' => 'sometimes|string',
-    //         'TARGET' => 'sometimes|string',
-    //         'RESULT' => 'sometimes|string',
-    //         'IMAGE' => 'nullable|string',
-    //         'DURATION' => 'sometimes|integer',
-    //         'PRICE' => 'sometimes|numeric',
-    //         'TYPE' => 'sometimes|string',
-    //         'DISCOUNT_PERCENT' => 'nullable|numeric'
-    //     ]);
-
-    //     $course->update($validated);
-
-    //     return response()->json([
-    //         'success' => true,
-    //         'message' => 'Cập nhật khoá học thành công!',
-    //         'course' => $course
-    //     ]);
-    // }
-
-    // /**
-    //  * Xoá khoá học
-    //  */
-    // public function destroy($id)
-    // {
-    //     $course = Course::find($id);
-    //     if (!$course) {
-    //         return response()->json([
-    //             'success' => false,
-    //             'message' => 'Khoá học không tồn tại'
-    //         ], 404);
-    //     }
-
-    //     $course->delete();
-
-    //     return response()->json([
-    //         'success' => true,
-    //         'message' => 'Xoá khoá học thành công!'
-    //     ]);
-    // }
-
-    /**
-     * Hiển thị trang chi tiết khóa học
-     */
-    public function show($courseId)
+    // 4. Xóa khóa học
+    public function delete($id)
     {
-        $courseInfo = Course::getCourseInfo($courseId);
+        $course = Course::findOrFail($id);
 
-        if (!$courseInfo) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Khóa học không tồn tại'
-            ], 404);
-        }
-
-        $structure = Course::getCourseStructure($courseId);
-        $reviews = Course::getCourseReviews($courseId);
+        $course->delete();
 
         return response()->json([
-            'success' => true,
-            'data' => [
-                'COURSES_ID' => $courseInfo['COURSES_ID'],
-                'TITLE' => $courseInfo['TITLE'],
-                'DESCRIPTION' => $courseInfo['DESCRIPTION'],
-                'RATING_AVG' => (float) $courseInfo['RATING_AVG'],
-                'TOTAL_REVIEWS' => (int) $courseInfo['TOTAL_REVIEWS'],
-                'TOTAL_STUDENTS' => (int) $courseInfo['TOTAL_STUDENTS'],
-                'MODULES' => $structure,
-                'REVIEWS' => $reviews
-            ]
+            'message' => 'Course deleted successfully'
+        ]);
+    }
+
+
+    // 5. Chi tiết khóa học với cấu trúc như yêu cầu
+    public function detail($id)
+    {
+        $course = Course::with([
+            'modules.lessons.quizzes',
+            'reviews.user'
+        ])->findOrFail($id);
+
+        $response = [
+            "COURSES_ID" => $course->courses_id,
+            "TITLE" => $course->title,
+            "DESCRIPTION" => $course->description,
+            "RATING_AVG" => $course->rating_avg,
+            "TOTAL_REVIEWS" => count($course->reviews),
+            "TOTAL_STUDENTS" => $course->total_students,
+            "MODULES" => [],
+            "REVIEWS" => []
+        ];
+
+        foreach ($course->modules as $module) {
+            $response["MODULES"][] = [
+                "COURSES_MODULES_ID" => $module->courses_modules_id,
+                "TITLE" => $module->title,
+                "ORDER_INDEX" => $module->order_index,
+                "LESSONS" => $module->lessons->map(function ($lesson) {
+                    return [
+                        "LESSON_ID" => $lesson->lesson_id,
+                        "TITLE" => $lesson->title,
+                        "DESCRIPTION" => "",
+                        "ORDER_INDEX" => $lesson->order_index,
+                        "VIDEO_URL" => $lesson->video_url,
+                        "QUIZZES" => $lesson->quizzes->map(function ($q) {
+                            return ["QUIZ_ID" => $q->quiz_id];
+                        })
+                    ];
+                })
+            ];
+        }
+
+        foreach ($course->reviews as $review) {
+            $response["REVIEWS"][] = [
+                "FULL_NAME" => $review->user->full_name,
+                "CONTEXT" => $review->context,
+                "RATING" => $review->rating
+            ];
+        }
+
+        return response()->json([
+            "data" => $response
         ]);
     }
 }
