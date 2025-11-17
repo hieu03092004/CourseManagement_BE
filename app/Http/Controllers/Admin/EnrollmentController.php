@@ -1,243 +1,213 @@
-<?php
+<?php 
 
-namespace App\Http\Controllers\Admin;
+namespace App\Http\Controllers;
 
-use App\Http\Controllers\Controller;
-use Illuminate\Http\Request;
-use App\Database\MySQLConnection;
-use App\Models\Course;
-use App\Models\Order;
 use App\Models\Cart;
+use App\Models\CartItem;
+use App\Models\Order;
+use App\Models\OrderItem;
+use App\Models\Course;
+use Illuminate\Http\Request;
 
 class EnrollmentController extends Controller
 {
     /**
-     * 🔹 MUA NGAY — tạo đơn hàng và order_item
+     * Người dùng nhấn Đăng ký ngay tại trang chi tiết → hiển thị đơn hàng
      */
-    public function buyNow(Request $request)
+    public function previewSingleCourse($courseId)
     {
-        $validated = $request->validate([
-            'user_id' => 'required|integer',
-            'course_id' => 'required|integer',
-        ]);
-
-        $userId = $validated['user_id'];
-        $courseId = $validated['course_id'];
-
-        // 🔹 Lấy thông tin khóa học trực tiếp từ bảng COURSES
-        $conn = MySQLConnection::connect();
-        $stmt = $conn->prepare("SELECT PRICE, DURATION FROM COURSES WHERE COURSES_ID = ?");
-        $stmt->bind_param("i", $courseId);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        $course = $result->fetch_assoc();
+        $course = Course::find($courseId);
 
         if (!$course) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Khoá học không tồn tại.'
-            ], 404);
-        }
-
-        $price = $course['PRICE'];
-        $duration = $course['DURATION'];
-        $expiredAt = date('Y-m-d H:i:s', strtotime("+{$duration} months"));
-
-        $orderId = Order::createOrder($userId, $courseId, $price, $expiredAt);
-
-        if ($orderId) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Tạo đơn hàng thành công. Vui lòng thanh toán để hoàn tất.',
-                'order_id' => $orderId
-            ]);
+            return response()->json(['status' => false, 'message' => 'Không tìm thấy khoá học'], 404);
         }
 
         return response()->json([
-            'success' => false,
-            'message' => 'Không thể tạo đơn hàng.'
-        ], 500);
+            'status' => true,
+            'order_preview' => [
+                'course' => $course,
+                'total' => floatval($course->price)
+            ]
+        ]);
     }
 
 
     /**
-     * 🔹 THÊM VÀO GIỎ HÀNG
+     * Thanh toán 1 khóa học → lưu vào DB (KHÔNG TRANSACTION)
+     */
+    public function paySingleCourse(Request $request)
+    {
+        $request->validate([
+            'user_id' => 'required',
+            'courses_id' => 'required'
+        ]);
+
+        $course = Course::find($request->courses_id);
+
+        if (!$course) {
+            return response()->json(['status' => false, 'message' => 'Khoá học không tồn tại'], 404);
+        }
+
+        // Payment time
+        $paymentTime = now();
+
+        // Tạo order
+        $order = Order::create([
+            'user_id' => $request->user_id,
+            'total_price' => $course->price,
+            'payment_status' => 'completed',
+            'payment_time' => $paymentTime
+        ]);
+
+        // expired = payment_time + duration (months)
+        $expiredAt = date(
+            'Y-m-d H:i:s',
+            strtotime($paymentTime . " +" . $course->duration . " months")
+        );
+
+        // Tạo order_item
+        OrderItem::create([
+            'orders_id' => $order->orders_id,
+            'courses_id' => $course->courses_id,
+            'unit_price' => $course->price,
+            'expired_at' => $expiredAt
+        ]);
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Thanh toán thành công',
+            'order' => $order
+        ]);
+    }
+
+
+
+    /**
+     * Thêm khóa học vào giỏ hàng
      */
     public function addToCart(Request $request)
     {
-        $validated = $request->validate([
-            'user_id' => 'required|integer',
-            'course_id' => 'required|integer',
+        $request->validate([
+            'user_id' => 'required',
+            'courses_id' => 'required'
         ]);
 
-        $userId = $validated['user_id'];
-        $courseId = $validated['course_id'];
+        $cart = Cart::firstOrCreate(['user_id' => $request->user_id]);
 
-        $course = Course::getCourseInfo($courseId);
-        if (!$course) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Khoá học không tồn tại.'
-            ], 404);
+        $exists = CartItem::where('cart_id', $cart->cart_id)
+                          ->where('courses_id', $request->courses_id)
+                          ->exists();
+
+        if ($exists) {
+            return response()->json(['status' => false, 'message' => 'Khoá học đã có trong giỏ hàng']);
         }
 
-        $added = Cart::addCourseToCart($userId, $courseId);
-        if ($added) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Khóa học đã được thêm vào giỏ hàng.'
-            ]);
+        CartItem::create([
+            'cart_id' => $cart->cart_id,
+            'courses_id' => $request->courses_id
+        ]);
+
+        return response()->json(['status' => true, 'message' => 'Đã thêm vào giỏ hàng']);
+    }
+
+
+
+    /**
+     * Trang giỏ hàng → hiển thị các khóa học
+     */
+    public function getCart($userId)
+    {
+        $cart = Cart::where('user_id', $userId)
+                    ->with('items.course')
+                    ->first();
+
+        if (!$cart) {
+            return response()->json(['status' => true, 'items' => []]);
         }
 
         return response()->json([
-            'success' => false,
-            'message' => 'Không thể thêm khóa học vào giỏ hàng.'
-        ], 500);
+            'status' => true,
+            'cart' => $cart
+        ]);
     }
 
+
+
     /**
-     * 🔹 THANH TOÁN TỪ GIỎ HÀNG
-     * - Nhận danh sách course_id người dùng chọn trong giỏ
+     * Preview đơn hàng từ giỏ hàng (nhiều khóa)
      */
-    public function checkoutFromCart(Request $request)
+    public function previewCartOrder(Request $request)
     {
-        $validated = $request->validate([
-            'user_id' => 'required|integer',
-            'course_ids' => 'required|array',
-            'course_ids.*' => 'integer'
+        $request->validate([
+            'courses_ids' => 'required|array'
         ]);
 
-        $userId = $validated['user_id'];
-        $courseIds = $validated['course_ids'];
+        $courses = Course::whereIn('courses_id', $request->courses_ids)->get();
+        $total = $courses->sum('price');
 
-        $conn = MySQLConnection::connect();
-
-        try {
-            $conn->begin_transaction();
-
-            $total = 0;
-            $expiredAt = date('Y-m-d H:i:s', strtotime('+1 year'));
-
-            // 1️⃣ Tạo order trước
-            $stmtOrder = $conn->prepare("
-                INSERT INTO ORDERS (USER_ID, TOTAL_PRICE, PAYMENT_STATUS, CREATED_AT)
-                VALUES (?, 0, 'pending', NOW())
-            ");
-            $stmtOrder->bind_param("i", $userId);
-            $stmtOrder->execute();
-            $orderId = $conn->insert_id;
-
-            // 2️⃣ Lặp qua từng khóa học
-            $stmtCourse = $conn->prepare("SELECT PRICE, DURATION FROM COURSES WHERE COURSES_ID = ?");
-            $stmtItem = $conn->prepare("
-                INSERT INTO ORDER_ITEM (COURSES_ID, ORDERS_ID, UNIT_PRICE, EXPIRED_AT)
-                VALUES (?, ?, ?, ?)
-            ");
-
-            foreach ($courseIds as $courseId) {
-                $stmtCourse->bind_param("i", $courseId);
-                $stmtCourse->execute();
-                $result = $stmtCourse->get_result();
-                $course = $result->fetch_assoc();
-
-                if ($course) {
-                    $price = $course['PRICE'];
-                    $duration = $course['DURATION'];
-                    $total += $price;
-
-                    // ⚙️ Tính hạn theo duration
-                    $expiredAt = date('Y-m-d H:i:s', strtotime("+{$duration} months"));
-
-                    $stmtItem->bind_param("iids", $courseId, $orderId, $price, $expiredAt);
-                    $stmtItem->execute();
-
-                    Cart::removeFromCart($userId, $courseId);
-                }
-            }
-
-            // 4️⃣ Cập nhật tổng tiền đơn hàng
-            $stmtUpdate = $conn->prepare("UPDATE ORDERS SET TOTAL_PRICE = ? WHERE ORDERS_ID = ?");
-            $stmtUpdate->bind_param("di", $total, $orderId);
-            $stmtUpdate->execute();
-
-            $conn->commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Tạo đơn hàng thành công từ giỏ hàng.',
-                'order_id' => $orderId
-            ]);
-        } catch (\Exception $e) {
-            $conn->rollback();
-            error_log("Checkout failed: " . $e->getMessage());
-            return response()->json(['success' => false, 'message' => 'Thanh toán thất bại.'], 500);
-        }
+        return response()->json([
+            'status' => true,
+            'order_preview' => [
+                'courses' => $courses,
+                'total' => $total
+            ]
+        ]);
     }
 
+
+
     /**
-     * 🔹 XOÁ 1 HOẶC NHIỀU KHÓA HỌC KHỎI GIỎ HÀNG
+     * Thanh toán khóa học từ giỏ hàng (KHÔNG TRANSACTION)
      */
-    public function removeFromCart(Request $request)
+    public function payFromCart(Request $request)
     {
-        $validated = $request->validate([
-            'user_id' => 'required|integer',
-            'course_ids' => 'required|array',
-            'course_ids.*' => 'integer'
+        $request->validate([
+            'user_id' => 'required',
+            'courses_ids' => 'required|array'
         ]);
 
-        $userId = $validated['user_id'];
-        $courseIds = $validated['course_ids'];
+        $courses = Course::whereIn('courses_id', $request->courses_ids)->get();
+        $total = $courses->sum('price');
 
-        $conn = \App\Database\MySQLConnection::connect();
+        // Payment time
+        $paymentTime = now();
 
-        try {
-            $conn->begin_transaction();
+        // Tạo order
+        $order = Order::create([
+            'user_id' => $request->user_id,
+            'total_price' => $total,
+            'payment_status' => 'completed',
+            'payment_time' => $paymentTime
+        ]);
 
-            $cartId = \App\Models\Cart::getOrCreateCart($userId);
+        // Tạo order_items
+        foreach ($courses as $course) {
 
-            // Tạo chuỗi ?,?,? tương ứng số lượng course_ids
-            $in = str_repeat('?,', count($courseIds) - 1) . '?';
-            $types = str_repeat('i', count($courseIds) + 1);
-            $params = array_merge([$cartId], $courseIds);
+            $expiredAt = date(
+                'Y-m-d H:i:s',
+                strtotime($paymentTime . " +" . $course->duration . " months")
+            );
 
-            $query = "DELETE FROM CART_ITEM WHERE CART_ID = ? AND COURSES_ID IN ($in)";
-            $stmt = $conn->prepare($query);
-            $stmt->bind_param($types, ...$params);
-            $stmt->execute();
-
-            $conn->commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Đã xoá khoá học khỏi giỏ hàng.'
+            OrderItem::create([
+                'orders_id' => $order->orders_id,
+                'courses_id' => $course->courses_id,
+                'unit_price' => $course->price,
+                'expired_at' => $expiredAt
             ]);
-        } catch (\Exception $e) {
-            $conn->rollback();
-            return response()->json([
-                'success' => false,
-                'message' => 'Lỗi khi xoá khoá học: ' . $e->getMessage()
-            ], 500);
         }
-    }
 
+        // Xóa khóa học khỏi cart
+        $cart = Cart::where('user_id', $request->user_id)->first();
+        if ($cart) {
+            CartItem::where('cart_id', $cart->cart_id)
+                    ->whereIn('courses_id', $request->courses_ids)
+                    ->delete();
+        }
 
-    /**
-     * Lấy giỏ hàng người dùng
-     */
-    public function getCart(Request $request)
-    {
-        $userId = $request->input('user_id');
-        $items = Cart::getCartItems($userId);
-        return response()->json(['success' => true, 'data' => $items]);
-    }
-
-    /**
-     * Lấy danh sách đơn hàng người dùng
-     */
-    public function getOrders(Request $request)
-    {
-        $userId = $request->input('user_id');
-        $orders = Order::getUserOrders($userId);
-        return response()->json(['success' => true, 'data' => $orders]);
+        return response()->json([
+            'status' => true,
+            'message' => 'Thanh toán thành công',
+            'order' => $order
+        ]);
     }
 }
