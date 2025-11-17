@@ -1,27 +1,22 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Admin\EnrollmentController;
+use App\Http\Controllers\EnrollmentController;
 
-/*
-|--------------------------------------------------------------------------
-| Routes: Enroll / Register Course
-|--------------------------------------------------------------------------
-|
-| Các API xử lý việc người dùng đăng ký khoá học:
-| 
-| - POST /enroll/buy-now       → Mua ngay (tạo order & order_item)
-| - POST /enroll/add-to-cart   → Thêm vào giỏ hàng
-| - POST /enroll/checkout-cart → Thanh toán các khoá học trong giỏ hàng
-| - GET  /enroll/cart          → Lấy danh sách giỏ hàng người dùng
-| - GET  /enroll/orders        → Lấy danh sách đơn hàng người dùng
-|
-*/
+// Xem trước thanh toán 1 khóa học
+Route::get('/preview-single/{courseId}', [EnrollmentController::class, 'previewSingleCourse']);
 
-Route::post('/buy-now', [EnrollmentController::class, 'buyNow'])->name('enroll.buyNow');
-Route::post('/add-to-cart', [EnrollmentController::class, 'addToCart'])->name('enroll.addToCart');
-Route::post('/checkout-cart', [EnrollmentController::class, 'checkoutFromCart'])->name('enroll.checkoutCart');
+// Thanh toán 1 khóa học
+Route::post('/pay-single', [EnrollmentController::class, 'paySingleCourse']);
 
-Route::get('/cart', [EnrollmentController::class, 'getCart'])->name('enroll.cart');
-Route::get('/orders', [EnrollmentController::class, 'getOrders'])->name('enroll.orders');
-Route::post('/remove-from-cart', [EnrollmentController::class, 'removeFromCart']);
+// Thêm khóa học vào giỏ hàng
+Route::post('/cart/add', [EnrollmentController::class, 'addToCart']);
+
+// Lấy danh sách giỏ hàng
+Route::get('/cart/{userId}', [EnrollmentController::class, 'getCart']);
+
+// Xem trước đơn hàng nhiều khóa học (từ giỏ hàng)
+Route::post('/preview-cart-order', [EnrollmentController::class, 'previewCartOrder']);
+
+// Thanh toán khóa học từ giỏ hàng
+Route::post('/pay-cart', [EnrollmentController::class, 'payFromCart']);
