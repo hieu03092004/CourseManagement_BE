@@ -1,12 +1,13 @@
 <?php 
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Course;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 
 class EnrollmentController extends Controller

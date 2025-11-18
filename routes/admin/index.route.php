@@ -67,8 +67,11 @@ Route::prefix($prefixAdmin)->group(function () {
         require __DIR__ . '/review.route.php';
     });
 
-    Route::prefix('enroll')->group(function () { 
-        require __DIR__ . '/enroll.route.php'; 
+    Route::prefix('enroll')->group(function () {
+        require __DIR__ . '/enroll.route.php';
+    });
+
+    Route::prefix('statistics')->group(function () {
+        require __DIR__ . '/statistics.route.php';
     });
 });
-
