@@ -74,4 +74,16 @@ Route::prefix($prefixAdmin)->group(function () {
     Route::prefix('statistics')->group(function () {
         require __DIR__ . '/statistics.route.php';
     });
+    
+    Route::prefix('order')->group(function () {
+        require __DIR__ . '/order.route.php';
+    });
+
+    Route::prefix('cart')->group(function () {
+        require __DIR__ . '/cart.route.php';
+    });
+
+    Route::prefix('user')->group(function () {
+        require __DIR__ . '/user.route.php';
+    });
 });
