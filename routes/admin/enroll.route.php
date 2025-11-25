@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\EnrollmentController;
+use App\Http\Controllers\Admin\EnrollmentController;
 
 // Xem trước thanh toán 1 khóa học
 Route::get('/preview-single/{courseId}', [EnrollmentController::class, 'previewSingleCourse']);

@@ -1,13 +1,16 @@
-<?php 
+<?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
 use App\Models\Cart;
 use App\Models\CartItem;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Course;
+use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+
 
 class EnrollmentController extends Controller
 {
@@ -33,7 +36,7 @@ class EnrollmentController extends Controller
 
 
     /**
-     * Thanh toán 1 khóa học → lưu vào DB (KHÔNG TRANSACTION)
+     * Thanh toán 1 khóa học → lưu vào DB
      */
     public function paySingleCourse(Request $request)
     {
@@ -55,8 +58,9 @@ class EnrollmentController extends Controller
         $order = Order::create([
             'user_id' => $request->user_id,
             'total_price' => $course->price,
-            'payment_status' => 'completed',
-            'payment_time' => $paymentTime
+            'payment_status' => 'paid',
+            'payment_time' => $paymentTime,
+            'created_at' => now()
         ]);
 
         // expired = payment_time + duration (months)
@@ -95,8 +99,8 @@ class EnrollmentController extends Controller
         $cart = Cart::firstOrCreate(['user_id' => $request->user_id]);
 
         $exists = CartItem::where('cart_id', $cart->cart_id)
-                          ->where('courses_id', $request->courses_id)
-                          ->exists();
+            ->where('courses_id', $request->courses_id)
+            ->exists();
 
         if ($exists) {
             return response()->json(['status' => false, 'message' => 'Khoá học đã có trong giỏ hàng']);
@@ -104,7 +108,8 @@ class EnrollmentController extends Controller
 
         CartItem::create([
             'cart_id' => $cart->cart_id,
-            'courses_id' => $request->courses_id
+            'courses_id' => $request->courses_id,
+            'created_at' => now()
         ]);
 
         return response()->json(['status' => true, 'message' => 'Đã thêm vào giỏ hàng']);
@@ -118,8 +123,8 @@ class EnrollmentController extends Controller
     public function getCart($userId)
     {
         $cart = Cart::where('user_id', $userId)
-                    ->with('items.course')
-                    ->first();
+            ->with('items.course')
+            ->first();
 
         if (!$cart) {
             return response()->json(['status' => true, 'items' => []]);
@@ -157,7 +162,7 @@ class EnrollmentController extends Controller
 
 
     /**
-     * Thanh toán khóa học từ giỏ hàng (KHÔNG TRANSACTION)
+     * Thanh toán khóa học từ giỏ hàng
      */
     public function payFromCart(Request $request)
     {
@@ -176,38 +181,93 @@ class EnrollmentController extends Controller
         $order = Order::create([
             'user_id' => $request->user_id,
             'total_price' => $total,
-            'payment_status' => 'completed',
-            'payment_time' => $paymentTime
+            'payment_status' => 'paid',
+            'payment_time' => $paymentTime,
+            'created_at' => now()
         ]);
 
         // Tạo order_items
+        // foreach ($courses as $course) {
+
+        //     $expiredAt = date(
+        //         'Y-m-d H:i:s',
+        //         strtotime($paymentTime . " +" . $course->duration . " months")
+        //     );
+
+        //     OrderItem::create([
+        //         'orders_id' => $order->orders_id,
+        //         'courses_id' => $course->courses_id,
+        //         'unit_price' => $course->price,
+        //         'expired_at' => $expiredAt
+        //     ]);
+        // }
+
         foreach ($courses as $course) {
+            $expiredAt = date('Y-m-d H:i:s', strtotime($paymentTime . " +" . $course->duration . " months"));
 
-            $expiredAt = date(
-                'Y-m-d H:i:s',
-                strtotime($paymentTime . " +" . $course->duration . " months")
-            );
-
-            OrderItem::create([
+            // Log trước khi tạo OrderItem
+            Log::info('Attempting to create OrderItem', [
                 'orders_id' => $order->orders_id,
                 'courses_id' => $course->courses_id,
                 'unit_price' => $course->price,
                 'expired_at' => $expiredAt
             ]);
+
+            try {
+                OrderItem::create([
+                    'orders_id' => $order->orders_id,
+                    'courses_id' => $course->courses_id,
+                    'unit_price' => $course->price,
+                    'expired_at' => $expiredAt
+                ]);
+
+                Log::info("OrderItem created successfully for course_id: {$course->courses_id}");
+            } catch (\Exception $e) {
+                Log::error("Failed to create OrderItem", [
+                    'error' => $e->getMessage(),
+                    'orders_id' => $order->orders_id,
+                    'courses_id' => $course->courses_id
+                ]);
+            }
         }
 
         // Xóa khóa học khỏi cart
         $cart = Cart::where('user_id', $request->user_id)->first();
         if ($cart) {
             CartItem::where('cart_id', $cart->cart_id)
-                    ->whereIn('courses_id', $request->courses_ids)
-                    ->delete();
+                ->whereIn('courses_id', $request->courses_ids)
+                ->delete();
         }
 
         return response()->json([
             'status' => true,
             'message' => 'Thanh toán thành công',
             'order' => $order
+        ]);
+    }
+
+    /**
+     * Trang đơn hàng (thông tin các đơn hàng theo User)
+     */
+    public function getOrders($userId)
+    {
+        // Lấy danh sách đơn hàng theo user, kèm order_items + course
+        $orders = Order::where('user_id', $userId)
+            ->with('items.course')     // Quan hệ: order → order_item → course
+            ->orderBy('orders_id', 'desc')  // Mới nhất trước
+            ->get();
+
+        // Nếu không có đơn hàng
+        if ($orders->isEmpty()) {
+            return response()->json([
+                'status' => true,
+                'orders' => []
+            ]);
+        }
+
+        return response()->json([
+            'status' => true,
+            'orders' => $orders
         ]);
     }
 }

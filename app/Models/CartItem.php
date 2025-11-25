@@ -10,7 +10,7 @@ class CartItem extends Model
     public $timestamps = false;
     public $incrementing = false;
 
-    protected $fillable = ['cart_id', 'courses_id'];
+    protected $fillable = ['cart_id', 'courses_id', 'created_at'];
 
     public function course()
     {

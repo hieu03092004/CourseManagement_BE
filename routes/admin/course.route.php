@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\CourseController;
 use App\Http\Controllers\Admin\CourseModuleController;
+use App\Http\Controllers\Admin\ReviewController;
 
 
 // Tạo khóa học mới
@@ -25,3 +26,6 @@ Route::post('{courseId}/modules', [CourseModuleController::class, 'create']);
 
 // Lấy danh sách module theo khóa học
 Route::get('{courseId}/modules', [CourseModuleController::class, 'getModulesByCourse']);
+
+//Lấy danh sách review theo khoá học
+Route::get('{id}/reviews', [ReviewController::class, 'getReviews']);

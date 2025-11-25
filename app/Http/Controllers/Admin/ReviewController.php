@@ -26,7 +26,7 @@ class ReviewController extends Controller
     /**
      * Tạo mới review
      */
-    public function store(Request $request)
+    public function create(Request $request)
     {
         $request->validate([
             'courses_id' => 'required|integer',
@@ -86,7 +86,7 @@ class ReviewController extends Controller
     /**
      * Xóa review
      */
-    public function destroy($reviewId)
+    public function delete($reviewId)
     {
         $review = Review::find($reviewId);
 
