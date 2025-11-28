@@ -83,7 +83,7 @@ Route::prefix($prefixAdmin)->group(function () {
         require __DIR__ . '/cart.route.php';
     });
 
-    Route::prefix('user')->group(function () {
-        require __DIR__ . '/user.route.php';
-    });
+    // Route::prefix('user')->group(function () {
+    //     require __DIR__ . '/user.route.php';
+    // });
 });
