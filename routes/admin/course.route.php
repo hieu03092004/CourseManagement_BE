@@ -5,6 +5,8 @@ use App\Http\Controllers\Admin\CourseController;
 use App\Http\Controllers\Admin\CourseModuleController;
 use App\Http\Controllers\Admin\ReviewController;
 
+//Lấy tất cả khoá học
+Route::get('', [CourseController::class, 'getAllCourses']);
 
 // Tạo khóa học mới
 Route::post('', [CourseController::class, 'create']);
