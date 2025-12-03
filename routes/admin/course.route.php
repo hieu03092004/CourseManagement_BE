@@ -5,8 +5,6 @@ use App\Http\Controllers\Admin\CourseController;
 use App\Http\Controllers\Admin\CourseModuleController;
 use App\Http\Controllers\Admin\ReviewController;
 
-//Lấy tất cả khoá học
-Route::get('', [CourseController::class, 'getAllCourses']);
 
 // Lấy tất cả khóa học
 Route::get('/getAll', [CourseController::class, 'getAll']);
