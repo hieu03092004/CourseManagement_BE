@@ -14,8 +14,7 @@ class Question extends Model
     protected $fillable = [
         'quiz_id',
         'content',
-        'true_answer',
-        'order_index'
+        'true_answer'
     ];
 
     public function answers()

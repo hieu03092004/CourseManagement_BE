@@ -13,6 +13,9 @@ class Quizz extends Model
 
     protected $fillable = [
         'lesson_id',
+        'title',
+        'time_limit',
+        'status'
     ];
 
     public function questions()

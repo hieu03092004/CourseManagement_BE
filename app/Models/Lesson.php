@@ -12,7 +12,7 @@ class Lesson extends Model
     protected $table = 'lesson';
 
     protected $fillable = [
-        'courses_module_id',
+        'courses_modules_id',
         'title',
         'video_url',
         'duration',
@@ -22,5 +22,10 @@ class Lesson extends Model
     public function quizzes()
     {
         return $this->hasMany(Quizz::class, 'lesson_id', 'lesson_id');
+    }
+
+    public function courseModule()
+    {
+        return $this->belongsTo(CourseModule::class, 'courses_modules_id', 'courses_modules_id');
     }
 }

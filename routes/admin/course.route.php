@@ -6,8 +6,17 @@ use App\Http\Controllers\Admin\CourseModuleController;
 use App\Http\Controllers\Admin\ReviewController;
 
 
+// Lấy tất cả khóa học
+Route::get('/getAll', [CourseController::class, 'getAll']);
+
+// Lấy chi tiết khóa học theo cấu trúc FE
+Route::get('/details/{id}', [CourseController::class, 'details']);
+
+// Cập nhật khóa học theo cấu trúc FE
+Route::patch('/edit/{id}', [CourseController::class, 'edit']);
+
 // Tạo khóa học mới
-Route::post('', [CourseController::class, 'create']);
+Route::post('/create', [CourseController::class, 'create']);
 
 // Lấy toàn bộ danh sách khóa học của một user
 Route::get('user/{userId}', [CourseController::class, 'getCoursesByUser']);
@@ -16,7 +25,7 @@ Route::get('user/{userId}', [CourseController::class, 'getCoursesByUser']);
 Route::put('{id}', [CourseController::class, 'update']);
 
 // Xóa khóa học
-Route::delete('{id}', [CourseController::class, 'delete']);
+Route::delete('/delete/{id}', [CourseController::class, 'delete']);
 
 // Xem chi tiết khóa học
 Route::get('{id}', [CourseController::class, 'detail']);

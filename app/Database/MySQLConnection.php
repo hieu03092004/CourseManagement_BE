@@ -35,10 +35,6 @@ class MySQLConnection
             // Set charset UTF8
             self::$connection->set_charset("utf8mb4");
 
-            // In ra terminal khi connect thành công
-            error_log("\n✓ MySQL Connect Successfully!");
-            error_log("  Database: {$dbname}");
-            error_log("  Host: {$servername}:{$port}\n");
 
             return self::$connection;
         } catch (\Exception $e) {

@@ -16,6 +16,9 @@ $app = Application::configure(basePath: dirname(__DIR__))
         },
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // CORS Middleware - Cho phép tất cả origins (dev mode)
+        $middleware->append(\Illuminate\Http\Middleware\HandleCors::class);
+        
         $middleware->alias([
             'admin.auth' => \App\Http\Middleware\AdminAuthMiddleware::class,
         ]);

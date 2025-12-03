@@ -19,5 +19,10 @@ class CourseModule extends Model
         return $this->hasMany(Lesson::class, 'courses_modules_id', 'courses_modules_id')
                     ->orderBy('order_index');
     }
+
+    public function course()
+    {
+        return $this->belongsTo(Course::class, 'courses_id', 'courses_id');
+    }
 }
 

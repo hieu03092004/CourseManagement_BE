@@ -12,8 +12,7 @@ class Course extends Model
 
     protected $fillable = [
         'user_id', 'title', 'description', 'target', 'result', 'image',
-        'duration', 'updated_at', 'price', 'type', 'rating_avg',
-        'total_students', 'created_at', 'discount_percent'
+        'duration', 'updated_at', 'price', 'type', 'created_at', 'discount_percent'
     ];
 
     public function modules()
@@ -30,6 +29,11 @@ class Course extends Model
     public function instructor()
     {
         return $this->belongsTo(User::class, 'user_id', 'user_id');
+    }
+
+    public function orderItems()
+    {
+        return $this->hasMany(OrderItem::class, 'courses_id', 'courses_id');
     }
 }
 

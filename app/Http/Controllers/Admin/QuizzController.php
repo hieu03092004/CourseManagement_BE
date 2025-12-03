@@ -2,78 +2,256 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
 use App\Models\Answer;
 use App\Models\Discussion;
 use App\Models\ParentDiscussion;
 use App\Models\Question;
 use App\Models\Quizz;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Support\Facades\DB;
 
-class QuizzController extends Controller
+class QuizzController extends BaseAPIController
 {
-    public function store(Request $request)
+    public function getAll()
     {
-        // Tạo quiz
-        $quizz = Quizz::create([
-            'lesson_id' => $request->lesson_id
-        ]);
+        try {
+            $quizzes = Quizz::with(['lesson.courseModule.course'])->get();
 
-        $createdQuestions = [];
+            $result = $quizzes->map(function ($quiz) {
+                $lessonName = $quiz->lesson->title ?? '';
+                $courseName = $quiz->lesson->courseModule->course->title ?? '';
 
-        // Nếu không có questions gửi lên, tạo mặc định 1 câu hỏi + 1 đáp án
-        $questions = $request->questions ?? [
-            [
-                'content' => 'Nội dung 1',
-                'true_answer' => 0,
-                'order_index' => 1,
-                'answers' => [
-                    ['content' => 'Đáp án 1']
-                ]
-            ]
-        ];
+                return [
+                    'id' => (string)$quiz->quiz_id,
+                    'lessonName' => $lessonName,
+                    'quizName' => $quiz->title ?? '',
+                    'courseName' => $courseName,
+                    'status' => $quiz->status ?? 'active'
+                ];
+            });
 
-        foreach ($questions as $qIndex => $q) {
-            $content = $q['content'] ?? 'Nội dung 1';
-            $true_answer = $q['true_answer'] ?? 0;
-            $orderIndex = $q['order_index'] ?? ($qIndex + 1);
+            return $this->ok($result);
+        } catch (\Exception $e) {
+            return $this->fail(
+                'An error occurred while fetching quizzes',
+                500,
+                'INTERNAL_ERROR',
+                ['message' => $e->getMessage()]
+            );
+        }
+    }
 
-            // Tạo question
-            $question = $quizz->questions()->create([
-                'content' => $content,
-                'true_answer' => $true_answer,
-                'order_index' => $orderIndex
-            ]);
-
-            $createdAnswers = [];
-
-            // Nếu không có answers, tạo mặc định 1 đáp án
-            $answers = $q['answers'] ?? [
-                ['content' => 'Đáp án 1']
-            ];
-
-            foreach ($answers as $aIndex => $a) {
-                $answerContent = $a['content'] ?? 'Đáp án 1';
-
-                // Tạo answer
-                $answer = $question->answers()->create([
-                    'content' => $answerContent
-                ]);
-
-                $createdAnswers[] = $answer;
+    public function create(Request $request, $lessonId)
+    {
+        try {
+            $data = $request->json()->all();
+            if (empty($data)) {
+                $rawContent = $request->getContent();
+                if (!empty($rawContent)) {
+                    $data = json_decode($rawContent, true);
+                }
             }
 
-            $question->answers = $createdAnswers;
-            $createdQuestions[] = $question;
-        }
+            if (empty($data) || !is_array($data)) {
+                return $this->fail(
+                    'Invalid data format',
+                    422,
+                    'VALIDATION_ERROR',
+                    ['message' => 'Data must be an object with title, lessonId, and questions']
+                );
+            }
 
-        return response()->json([
-            'message' => 'Tạo quiz thành công',
-            'data' => [
-                'quizz' => $quizz,
-                'questions' => $createdQuestions
-            ]
+            if (!isset($data['title']) || !isset($data['questions']) || !is_array($data['questions'])) {
+                return $this->fail(
+                    'Invalid data format',
+                    422,
+                    'VALIDATION_ERROR',
+                    ['message' => 'Data must contain title and questions array']
+                );
+            }
+
+        $quizz = Quizz::create([
+            'lesson_id' => $lessonId,
+            'title' => $data['title'],
+            'time_limit' => $data['timeLimit'] ?? 0,
+            'status' => $data['status'] ?? 'active'
         ]);
+
+            $result = [];
+
+            foreach ($data['questions'] as $item) {
+                $questionContent = $item['questionName'] ?? $item['question'] ?? '';
+                if (empty($questionContent)) {
+                    continue;
+                }
+
+                if (!isset($item['answers']) || !is_array($item['answers']) || empty($item['answers'])) {
+                    continue;
+                }
+
+                if (!isset($item['trueAnswer'])) {
+                    continue;
+                }
+
+                $answers = $item['answers'];
+                $trueAnswerIndex = (int)$item['trueAnswer'];
+
+                if ($trueAnswerIndex < 0 || $trueAnswerIndex >= count($answers)) {
+                    continue;
+                }
+
+                $question = $quizz->questions()->create([
+                    'content' => $questionContent,
+                    'true_answer' => $trueAnswerIndex
+                ]);
+
+                $createdAnswers = [];
+
+                foreach ($answers as $aIndex => $answerContent) {
+                    $answer = $question->answers()->create([
+                        'content' => $answerContent
+                    ]);
+
+                    $createdAnswers[] = [
+                        'answer_id' => $answer->answer_id,
+                        'content' => $answer->content
+                    ];
+                }
+
+                $result[] = [
+                    'question_id' => $question->question_id,
+                    'question' => $question->content,
+                    'true_answer' => $trueAnswerIndex,
+                    'answers' => $createdAnswers
+                ];
+            }
+
+        return $this->created([
+            'quiz_id' => $quizz->quiz_id,
+            'lesson_id' => $lessonId,
+            'title' => $quizz->title,
+            'timeLimit' => $quizz->time_limit,
+            'status' => $quizz->status,
+            'questions' => $result
+        ]);
+
+        } catch (ValidationException $e) {
+            return $this->fail(
+                'Validation failed',
+                422,
+                'VALIDATION_ERROR',
+                $e->errors()
+            );
+        } catch (\Exception $e) {
+            return $this->fail(
+                'An error occurred while creating quiz',
+                500,
+                'INTERNAL_ERROR',
+                ['message' => $e->getMessage()]
+            );
+        }
+    }
+
+    public function store(Request $request)
+    {
+        try {
+            $data = $request->json()->all();
+            if (empty($data)) {
+                $rawContent = $request->getContent();
+                if (!empty($rawContent)) {
+                    $data = json_decode($rawContent, true);
+                }
+            }
+
+            if (empty($data) || !is_array($data)) {
+                return $this->fail(
+                    'Invalid data format',
+                    422,
+                    'VALIDATION_ERROR',
+                    ['message' => 'Data must be an array of objects']
+                );
+            }
+
+            $result = [];
+
+            foreach ($data as $index => $item) {
+                if (!isset($item['lessonId']) || !isset($item['question']) || !isset($item['answers']) || !isset($item['trueAnswer'])) {
+                    continue;
+                }
+
+                $lessonId = $item['lessonId'];
+                $questionContent = $item['question'];
+                $answers = $item['answers'];
+                $trueAnswerIndex = (int)$item['trueAnswer'];
+
+                if (!is_array($answers) || empty($answers)) {
+                    continue;
+                }
+
+                if ($trueAnswerIndex < 0 || $trueAnswerIndex >= count($answers)) {
+                    continue;
+                }
+
+                $quizz = Quizz::firstOrCreate([
+                    'lesson_id' => $lessonId
+                ]);
+
+                $question = $quizz->questions()->create([
+                    'content' => $questionContent,
+                    'true_answer' => 0
+                ]);
+
+                $createdAnswers = [];
+                $trueAnswerId = null;
+
+                foreach ($answers as $aIndex => $answerContent) {
+                    $answer = $question->answers()->create([
+                        'content' => $answerContent
+                    ]);
+
+                    $createdAnswers[] = [
+                        'answer_id' => $answer->answer_id,
+                        'content' => $answer->content
+                    ];
+
+                    if ($aIndex === $trueAnswerIndex) {
+                        $trueAnswerId = $answer->answer_id;
+                    }
+                }
+
+                if ($trueAnswerId) {
+                    $question->update(['true_answer' => $trueAnswerId]);
+                }
+
+                $result[] = [
+                    'lesson_id' => $lessonId,
+                    'quiz_id' => $quizz->quiz_id,
+                    'question_id' => $question->question_id,
+                    'question' => $question->content,
+                    'true_answer_id' => $trueAnswerId,
+                    'answers' => $createdAnswers
+                ];
+            }
+
+            return $this->created($result);
+
+        } catch (ValidationException $e) {
+            return $this->fail(
+                'Validation failed',
+                422,
+                'VALIDATION_ERROR',
+                $e->errors()
+            );
+        } catch (\Exception $e) {
+            return $this->fail(
+                'An error occurred while creating quizzes',
+                500,
+                'INTERNAL_ERROR',
+                ['message' => $e->getMessage()]
+            );
+        }
     }
 
     // API thêm câu hỏi cho quiz
@@ -83,8 +261,7 @@ class QuizzController extends Controller
         $question = Question::create([
             'quiz_id' => $quizId,
             'content' => $request->content ?? 'Nội dung 1',
-            'true_answer' => $request->true_answer ?? 0,
-            'order_index' => $request->order_index ?? (Question::where('quiz_id', $quizId)->count() + 1)
+            'true_answer' => $request->true_answer ?? 0
         ]);
 
         $createdAnswers = [];
@@ -157,11 +334,9 @@ class QuizzController extends Controller
 
         $answerId = $request->true_answer;
         $newcontent = $request->new_content;
-        $index = $request->new_index;
 
         $question->content = $newcontent;
         $question->true_answer = $answerId;
-        $question->order_index = $index;
         $question->save();
 
         return response()->json([
@@ -173,28 +348,44 @@ class QuizzController extends Controller
     // API xóa quizz
     public function deleteQuiz($quizzId)
     {
-        $quizz = Quizz::findOrFail($quizzId);
+        try {
+            $quizz = Quizz::findOrFail($quizzId);
 
-        foreach ($quizz->quizzatemps as $attemp) {
-            $attemp->hasquestions()->delete();
-            $attemp->delete();
+            foreach ($quizz->quizzatemps as $attemp) {
+                $attemp->hasquestions()->delete();
+                $attemp->delete();
+            }
+
+            foreach ($quizz->questions as $question) {
+                $question->answers()->delete();
+                $question->delete();
+            }
+
+            foreach ($quizz->discussions as $discuss) {
+                $this->deleteDiscussionTree($discuss->discussion_id);
+            }
+
+            $quizz->delete();
+
+            return $this->ok([
+                'message' => 'Xóa quizz thành công',
+                'quiz_id' => $quizzId
+            ]);
+        } catch (ModelNotFoundException $e) {
+            return $this->fail(
+                'Quiz not found',
+                404,
+                'NOT_FOUND',
+                ['message' => 'Quiz không tồn tại']
+            );
+        } catch (\Exception $e) {
+            return $this->fail(
+                'An error occurred while deleting quiz',
+                500,
+                'INTERNAL_ERROR',
+                ['message' => $e->getMessage()]
+            );
         }
-
-        foreach ($quizz->questions as $question) {
-            $question->answers()->delete();
-            $question->delete();
-        }
-
-        foreach ($quizz->discussions as $discuss) {
-            $this->deleteDiscussionTree($discuss->discussion_id);
-        }
-
-        $quizz->delete();
-
-        return response()->json([
-            'message' => 'Xóa quizz thành công',
-            'quizz' => $quizzId
-        ]);
     }
 
     private function deleteDiscussionTree($id)
@@ -244,5 +435,234 @@ class QuizzController extends Controller
             'message' => 'Lấy questions thành công',
             'data' => $answers
         ]);
+    }
+
+    // API thay đổi status của quiz
+    public function changeStatus(Request $request)
+    {
+        try {
+            $data = $request->json()->all();
+            if (empty($data)) {
+                $rawContent = $request->getContent();
+                if (!empty($rawContent)) {
+                    $data = json_decode($rawContent, true);
+                }
+            }
+
+            if (empty($data) || !isset($data['quizzId']) || !isset($data['status'])) {
+                return $this->fail(
+                    'Invalid data format',
+                    422,
+                    'VALIDATION_ERROR',
+                    ['message' => 'Data must contain quizzId and status']
+                );
+            }
+
+            $quizz = Quizz::findOrFail($data['quizzId']);
+            $quizz->status = $data['status'];
+            $quizz->save();
+
+            return $this->ok([
+                'message' => 'Cập nhật status thành công',
+                'quiz_id' => $quizz->quiz_id,
+                'status' => $quizz->status
+            ]);
+        } catch (ModelNotFoundException $e) {
+            return $this->fail(
+                'Quiz not found',
+                404,
+                'NOT_FOUND',
+                ['message' => 'Quiz không tồn tại']
+            );
+        } catch (\Exception $e) {
+            return $this->fail(
+                'An error occurred while updating quiz status',
+                500,
+                'INTERNAL_ERROR',
+                ['message' => $e->getMessage()]
+            );
+        }
+    }
+
+    // API lấy chi tiết quiz
+    public function details($id)
+    {
+        try {
+            $quizz = Quizz::with([
+                'lesson.courseModule.course',
+                'questions.answers'
+            ])->findOrFail($id);
+
+            $lessonName = $quizz->lesson->title ?? '';
+            $courseName = $quizz->lesson->courseModule->course->title ?? '';
+
+            $questions = $quizz->questions->map(function ($question) {
+                $answers = $question->answers->map(function ($answer) {
+                    return [
+                        'answerId' => $answer->answer_id,
+                        'answerName' => $answer->content
+                    ];
+                })->toArray();
+
+                return [
+                    'questionId' => $question->question_id,
+                    'questionName' => $question->content,
+                    'answers' => $answers,
+                    'trueAnswer' => $question->true_answer
+                ];
+            })->toArray();
+
+            $result = [
+                'id' => (string)$quizz->quiz_id,
+                'lessonName' => $lessonName,
+                'quizName' => $quizz->title,
+                'courseName' => $courseName,
+                'status' => $quizz->status,
+                'questions' => $questions
+            ];
+
+            return $this->ok($result);
+        } catch (ModelNotFoundException $e) {
+            return $this->fail(
+                'Quiz not found',
+                404,
+                'NOT_FOUND',
+                ['message' => 'Quiz không tồn tại']
+            );
+        } catch (\Exception $e) {
+            return $this->fail(
+                'An error occurred while fetching quiz details',
+                500,
+                'INTERNAL_ERROR',
+                ['message' => $e->getMessage()]
+            );
+        }
+    }
+
+    // API chỉnh sửa quiz
+    public function edit(Request $request)
+    {
+        try {
+            $data = $request->json()->all();
+            if (empty($data)) {
+                $rawContent = $request->getContent();
+                if (!empty($rawContent)) {
+                    $data = json_decode($rawContent, true);
+                }
+            }
+
+            if (empty($data) || !isset($data['quiz_id'])) {
+                return $this->fail(
+                    'Invalid data format',
+                    422,
+                    'VALIDATION_ERROR',
+                    ['message' => 'Data must contain quiz_id']
+                );
+            }
+
+            $quizId = $data['quiz_id'];
+            $quizz = Quizz::findOrFail($quizId);
+
+            DB::beginTransaction();
+
+            // Xử lý xóa questions
+            if (isset($data['deletedQuestionIds']) && is_array($data['deletedQuestionIds'])) {
+                foreach ($data['deletedQuestionIds'] as $questionId) {
+                    $question = Question::find($questionId);
+                    if ($question && $question->quiz_id == $quizId) {
+                        $question->answers()->delete();
+                        $question->delete();
+                    }
+                }
+            }
+
+            // Xử lý tạo questions mới
+            if (isset($data['questionsToCreate']) && is_array($data['questionsToCreate'])) {
+                foreach ($data['questionsToCreate'] as $item) {
+                    if (!isset($item['content']) || !isset($item['answers']) || !isset($item['true_answer'])) {
+                        continue;
+                    }
+
+                    $question = Question::create([
+                        'quiz_id' => $quizId,
+                        'content' => $item['content'],
+                        'true_answer' => $item['true_answer']
+                    ]);
+
+                    if (isset($item['answers']) && is_array($item['answers'])) {
+                        foreach ($item['answers'] as $answerData) {
+                            if (isset($answerData['content'])) {
+                                Answer::create([
+                                    'question_id' => $question->question_id,
+                                    'content' => $answerData['content']
+                                ]);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Xử lý cập nhật questions
+            if (isset($data['questionsToUpdate']) && is_array($data['questionsToUpdate'])) {
+                foreach ($data['questionsToUpdate'] as $item) {
+                    if (!isset($item['question_id'])) {
+                        continue;
+                    }
+
+                    $question = Question::where('question_id', $item['question_id'])
+                        ->where('quiz_id', $quizId)
+                        ->first();
+
+                    if ($question) {
+                        if (isset($item['content'])) {
+                            $question->content = $item['content'];
+                        }
+                        if (isset($item['true_answer'])) {
+                            $question->true_answer = $item['true_answer'];
+                        }
+                        $question->save();
+
+                        // Cập nhật answers
+                        if (isset($item['answers']) && is_array($item['answers'])) {
+                            foreach ($item['answers'] as $answerData) {
+                                if (isset($answerData['answer_id']) && isset($answerData['content'])) {
+                                    $answer = Answer::where('answer_id', $answerData['answer_id'])
+                                        ->where('question_id', $question->question_id)
+                                        ->first();
+
+                                    if ($answer) {
+                                        $answer->content = $answerData['content'];
+                                        $answer->save();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            DB::commit();
+
+            return $this->ok([
+                'message' => 'Cập nhật quiz thành công',
+                'quiz_id' => $quizId
+            ]);
+        } catch (ModelNotFoundException $e) {
+            DB::rollBack();
+            return $this->fail(
+                'Quiz not found',
+                404,
+                'NOT_FOUND',
+                ['message' => 'Quiz không tồn tại']
+            );
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return $this->fail(
+                'An error occurred while updating quiz',
+                500,
+                'INTERNAL_ERROR',
+                ['message' => $e->getMessage()]
+            );
+        }
     }
 }
