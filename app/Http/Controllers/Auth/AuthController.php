@@ -5,7 +5,11 @@ namespace App\Http\Controllers\Auth;
 use App\Http\Controllers\Admin\BaseAPIController;
 use App\Http\Requests\Auth\RegisterRequest;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Http\Requests\Auth\ForgotPasswordRequest;
+use App\Http\Requests\Auth\ResetPasswordRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
 use App\Services\AuthService;
 use App\Exceptions\ApiException;
 
@@ -76,6 +80,55 @@ class AuthController extends BaseAPIController
                 'email' => $user->email,
             ],
         ]);
+    }
+    public function forgot(ForgotPasswordRequest $request)
+    {
+        $email = $request->string('email')->toString();
+
+        Password::sendResetLink(['email' => $email]);
+
+        return $this->ok([
+            'message' => 'Password reset link sent to your email.',
+        ]);
+    }
+
+    public function reset(ResetPasswordRequest $request)
+    {
+        $status = Password::reset(
+            [
+                'email' => $request->string('email')->toString(),
+                'password' => $request->string('password')->toString(),
+                'password_confirmation' => $request->string('password_confirmation')->toString(),
+                'token' => $request->string('token')->toString(),
+            ],
+            function ($user, $password) {
+                $user->forceFill([
+                    'password_hash' => bcrypt($password),
+                ]);
+
+                if (isset($user->remember_token)) {
+                    $user->setRememberToken(Str::random(60));
+                }
+
+                $user->save();
+
+                try {
+                    $user->tokens()?->delete();
+                } catch (\Throwable $e) {
+                    // ignore
+                }
+            }
+        );
+
+        if ($status !== Password::PASSWORD_RESET) {
+            return $this->fail('Invalid or expired reset token.', 400, 'INVALID_RESET_TOKEN');
+        }
+
+        $response = $this->ok([
+            'message' => 'Password has been reset successfully.',
+        ]);
+
+        return $response->withCookie(cookie()->forget('auth_token'));
     }
 }
 

@@ -14,4 +14,6 @@ Route::prefix('auth')->group(function () {
 
     Route::post('/email/resend', [EmailVerificationController::class, 'resend']);
     Route::get('/me', [AuthController::class, 'me'])->middleware('auth:sanctum');
+    Route::post('/forgot-password', [AuthController::class, 'forgot']);
+    Route::post('/reset-password', [AuthController::class, 'reset']);
 });

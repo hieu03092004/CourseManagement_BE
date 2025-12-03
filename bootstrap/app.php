@@ -37,6 +37,8 @@ $app = Application::configure(basePath: dirname(__DIR__))
             'auth/login',
             'auth/register',
             'auth/me',
+            'auth/forgot-password',   // thêm
+            'auth/reset-password',    // thêm
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
