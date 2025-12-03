@@ -2,13 +2,17 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Notifications\Notifiable;
 
-class User extends Model
+class User extends Authenticatable
 {
+    use HasApiTokens, Notifiable;
+
     protected $table = 'user';
     protected $primaryKey = 'user_id';
-    public $timestamps = false;
+    public $timestamps = false; // giữ nguyên nếu bạn tự xử lý created_at / updated_at
 
     protected $fillable = [
         'role_id',
@@ -22,34 +26,40 @@ class User extends Model
         'birth_date',
         'status',
         'created_at',
-        'updated_at'
+        'updated_at',
     ];
 
-    // Quan hệ với Role
+    protected $hidden = [
+        'password_hash',
+        'remember_token',
+    ];
+
+    // Cho Laravel biết field mật khẩu là password_hash
+    public function getAuthPassword()
+    {
+        return $this->password_hash;
+    }
+
     public function role()
     {
         return $this->belongsTo(Role::class, 'role_id');
     }
 
-    // Review của user
     public function reviews()
     {
         return $this->hasMany(Review::class, 'user_id');
     }
 
-    // Courses do user tạo
     public function courses()
     {
         return $this->hasMany(Course::class, 'user_id');
     }
 
-    // Orders
     public function orders()
     {
         return $this->hasMany(Order::class, 'user_id');
     }
 
-    // Cart
     public function cart()
     {
         return $this->hasOne(Cart::class, 'user_id');

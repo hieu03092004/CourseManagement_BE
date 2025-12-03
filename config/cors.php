@@ -1,11 +1,16 @@
 <?php
 
 return [
-    'paths' => ['api/*', 'admin/*', '*'],
+    // Áp dụng CORS cho các route API / auth / admin
+    'paths' => ['api/*', 'auth/*', 'admin/*'],
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['*'],
+    // Không dùng '*' khi dùng credentials. Chỉ cho phép origin FE của bạn.
+    'allowed_origins' => [
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+    ],
 
     'allowed_origins_patterns' => [],
 
@@ -15,6 +20,7 @@ return [
 
     'max_age' => 0,
 
-    'supports_credentials' => false,
+    // Cho phép gửi cookie / credentials
+    'supports_credentials' => true,
 ];
 

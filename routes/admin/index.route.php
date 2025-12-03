@@ -4,9 +4,6 @@ use Illuminate\Support\Facades\Route;
 
 $prefixAdmin = config('admin.prefixAdmin');
 // Auth routes (no middleware)
-Route::prefix($prefixAdmin . '/auth')->group(function () {
-    require __DIR__ . '/auth.route.php';
-});
 // Protected admin routes (with auth middleware)
 Route::prefix($prefixAdmin)->group(function () {
     // Dashboard

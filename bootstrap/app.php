@@ -23,8 +23,6 @@ $app = Application::configure(basePath: dirname(__DIR__))
             'admin.auth' => \App\Http\Middleware\AdminAuthMiddleware::class,
         ]);
         $middleware->validateCsrfTokens(except: [
-            'admin/auth/login',
-            'admin/auth/logout',
             'admin/*',
             'admin/courses',
             'admin/courses/*',
@@ -35,7 +33,10 @@ $app = Application::configure(basePath: dirname(__DIR__))
             'attemp',
             'attemp/*',
             'discuss',
-            'discuss/*'
+            'discuss/*',
+            'auth/login',
+            'auth/register',
+            'auth/me',
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
