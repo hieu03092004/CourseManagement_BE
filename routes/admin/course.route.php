@@ -27,8 +27,6 @@ Route::put('{id}', [CourseController::class, 'update']);
 // Xóa khóa học
 Route::delete('/delete/{id}', [CourseController::class, 'delete']);
 
-// Xem chi tiết khóa học
-Route::get('{id}', [CourseController::class, 'detail']);
 
 // Tạo module cho khóa học
 Route::post('{courseId}/modules', [CourseModuleController::class, 'create']);

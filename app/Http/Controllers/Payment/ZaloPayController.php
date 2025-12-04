@@ -367,7 +367,12 @@ class ZaloPayController extends Controller
 
             // Tạo các bản ghi trong order_item
             foreach ($courses as $course) {
-                $unitPrice = (float)$course->price;
+                // Tính unit_price với discount_percent
+                $originalPrice = (float)$course->price;
+                $discountPercent = (float)($course->discount_percent ?? 0);
+                $unitPrice = $discountPercent > 0
+                    ? $originalPrice * (1 - $discountPercent / 100)
+                    : $originalPrice;
                 
                 $expiredAt = now();
                 if ($course->duration) {

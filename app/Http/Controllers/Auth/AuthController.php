@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use App\Services\AuthService;
 use App\Exceptions\ApiException;
+use App\Models\Cart;
 
 class AuthController extends BaseAPIController
 {
@@ -45,6 +46,9 @@ class AuthController extends BaseAPIController
                 $request->string('password')->toString()
             );
 
+            // Query cart từ database
+            $cart = Cart::where('user_id', $user->user_id)->first();
+            
             return $this->ok([
                 'message' => 'Đăng nhập thành công',
                 'token' => $token,
@@ -52,7 +56,9 @@ class AuthController extends BaseAPIController
                     'id' => $user->user_id,
                     'email' => $user->email,
                     'fullName' => $user->full_name,
+                    'phone' => $user->phone,
                 ],
+                'cartId' => $cart ? $cart->cart_id : null,
             ]);
         } catch (ApiException $e) {
             return $this->fail(
@@ -73,12 +79,17 @@ class AuthController extends BaseAPIController
     public function me(Request $request)
     {
         $user = $request->user();
+        
+        // Tạo cart nếu chưa có, hoặc lấy cart hiện có
+        $cart = Cart::firstOrCreate(['user_id' => $user->user_id]);
+        
         return $this->ok([
             'user' => [
                 'id' => $user->user_id,
                 'fullName' => $user->full_name,
                 'email' => $user->email,
             ],
+            'cartId' => $cart->cart_id,
         ]);
     }
     public function forgot(ForgotPasswordRequest $request)

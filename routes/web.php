@@ -18,3 +18,4 @@ Route::get('/reset-password/{token}', function (Request $request, string $token)
 
 require __DIR__ . '/auth/auth.route.php';
 require __DIR__ . '/admin/index.route.php';
+require __DIR__ . '/client/index.route.php';

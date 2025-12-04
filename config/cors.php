@@ -1,8 +1,8 @@
 <?php
 
 return [
-    // Áp dụng CORS cho các route API / auth / admin
-    'paths' => ['api/*', 'auth/*', 'admin/*'],
+    // Áp dụng CORS cho các route API / auth / admin / client
+    'paths' => ['api/*', 'auth/*', 'admin/*', 'client/*'],
 
     'allowed_methods' => ['*'],
 

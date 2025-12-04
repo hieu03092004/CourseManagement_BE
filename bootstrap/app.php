@@ -35,6 +35,7 @@ $app = Application::configure(basePath: dirname(__DIR__))
             'attemp/*',
             'discuss',
             'discuss/*',
+            'client/*',
             'auth/login',
             'auth/register',
             'auth/me',

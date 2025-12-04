@@ -56,6 +56,7 @@ class CourseController extends BaseAPIController
                     'price' => (float)$price,
                     'originalPrice' => (float)$originalPrice,
                     'image' => $course->image ?? '',
+                    'duration' => $course->duration ?? null,
                 ];
             });
 
