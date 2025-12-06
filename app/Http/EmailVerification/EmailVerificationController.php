@@ -47,6 +47,7 @@ class EmailVerificationController extends BaseAPIController
         }
 
         $user->email_verified_at = now();
+        $user->status = 'active';
         $user->save();
 
         event(new Verified($user));

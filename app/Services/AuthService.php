@@ -25,6 +25,7 @@ class AuthService
 
         return [$user, $token];
     }
+
     public function register(
         string $fullName,
         string $userName,
@@ -37,13 +38,13 @@ class AuthService
         }
 
         $user = User::create([
-            'role_id' => 3, // ví dụ role member
+            'role_id' => 3, //mặc định là student
             'full_name' => $fullName,
             'username' => $userName,
             'email' => $email,
             'phone' => $phone,
             'password_hash' => Hash::make($passwordPlain),
-            'status' => 'active',
+            'status' => 'inactive',
             'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -53,12 +54,12 @@ class AuthService
             $verificationUrl = URL::temporarySignedRoute(
                 'api.email.verify',
                 now()->addMinutes(60),
-                ['id' => $user->user_id] // chú ý dùng khóa chính user_id
+                ['id' => $user->user_id]
             );
 
             $user->notify(new VerifyEmailApiLink($verificationUrl));
         } catch (\Throwable $e) {
-            // không chặn đăng ký nếu gửi mail lỗi (log nếu muốn)
+            // không chặn đăng ký nếu gửi mail lỗi 
         }
 
         return $user;
