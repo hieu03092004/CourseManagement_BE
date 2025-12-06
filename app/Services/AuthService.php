@@ -37,7 +37,7 @@ class AuthService
         }
 
         $user = User::create([
-            'role_id' => 2, // ví dụ role member
+            'role_id' => 3, // ví dụ role member
             'full_name' => $fullName,
             'username' => $userName,
             'email' => $email,

@@ -46,10 +46,7 @@ class AuthController extends BaseAPIController
                 $request->string('password')->toString()
             );
 
-            // Query cart từ database
-            $cart = Cart::where('user_id', $user->user_id)->first();
-            
-            return $this->ok([
+            $response = [
                 'message' => 'Đăng nhập thành công',
                 'token' => $token,
                 'user' => [
@@ -57,9 +54,16 @@ class AuthController extends BaseAPIController
                     'email' => $user->email,
                     'fullName' => $user->full_name,
                     'phone' => $user->phone,
+                    'roleId' => $user->role_id,
                 ],
-                'cartId' => $cart ? $cart->cart_id : null,
-            ]);
+            ];
+
+            if ($user->role_id == 3) {
+                $cart = Cart::where('user_id', $user->user_id)->first();
+                $response['cartId'] = $cart ? $cart->cart_id : null;
+            }
+
+            return $this->ok($response);
         } catch (ApiException $e) {
             return $this->fail(
                 $e->getMessage(),
