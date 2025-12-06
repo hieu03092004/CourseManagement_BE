@@ -13,7 +13,12 @@ class QuizzAttemps extends Model
 
     protected $fillable = [
         'quiz_id',
-        'user_id'
+        'user_id',
+        'created_at'
+    ];
+
+    protected $casts = [
+        'created_at' => 'datetime',
     ];
 
     public function hasquestions()

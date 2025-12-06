@@ -13,7 +13,7 @@ Route::prefix($prefixClient)->group(function () {
         require __DIR__ . '/cart.route.php';
     });
 
-    Route::prefix('getQuizz')->group(function () {
+    Route::prefix('quizz')->group(function () {
         require __DIR__ . '/quizz.route.php';
     });
 
